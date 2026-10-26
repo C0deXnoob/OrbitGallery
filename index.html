@@ -4,6 +4,12 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <meta name="theme-color" content="#0a0712">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Moments">
+<link rel="manifest" href="manifest.json">
+<link rel="icon" href="icon.svg" type="image/svg+xml">
 <title>Moments – a floating gallery</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -105,6 +111,15 @@
     body::after{display:none}
   }
 
+  /* ---------- app fullscreen control ---------- */
+  #fullscreenToggle{position:fixed;top:max(14px,env(safe-area-inset-top));left:14px;z-index:50;display:flex;align-items:center;gap:.55rem;
+    padding:.7rem .9rem;border-radius:999px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.09);color:#fff;
+    font:400 .78rem Inter,sans-serif;letter-spacing:.03em;cursor:pointer;backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);
+    box-shadow:inset 0 1px 0 rgba(255,255,255,.2),0 8px 28px rgba(0,0,0,.25);transition:background .25s,transform .25s}
+  #fullscreenToggle:hover{background:rgba(255,255,255,.17);transform:translateY(-1px)}
+  #fullscreenToggle svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  @media (pointer:coarse){#fullscreenToggle{backdrop-filter:none;-webkit-backdrop-filter:none}}
+
   /* ---------- password gate ---------- */
   #gate{position:fixed;inset:0;z-index:100;display:flex;overflow-y:auto;-webkit-overflow-scrolling:touch;
     padding:max(24px,env(safe-area-inset-top)) 24px max(24px,env(safe-area-inset-bottom));
@@ -141,6 +156,10 @@
 </head>
 <body>
 <canvas id="scene" tabindex="0" aria-label="3D photo and video gallery"></canvas>
+<button id="fullscreenToggle" type="button" aria-label="Enter fullscreen" title="Enter fullscreen">
+  <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/></svg>
+  <span>Fullscreen</span>
+</button>
 
 <div id="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
   <div id="gateForm" role="group" aria-labelledby="gateTitle">
@@ -772,6 +791,32 @@ function lockHash(str){
   return (4294967296 * (2097151 & h2) + (h1 >>> 0)).toString(36);
 }
 const gate = $('#gate'), gateForm = $('#gateForm'), gateInput = $('#gateInput'), gateMsg = $('#gateMsg');
+const fullscreenToggle = $('#fullscreenToggle');
+async function enterFullscreen(){
+  try {
+    if (!document.fullscreenElement && document.documentElement.requestFullscreen) {
+      await document.documentElement.requestFullscreen({ navigationUI: 'hide' });
+    }
+  } catch (err) {
+    /* Browsers require a direct user gesture and may deny fullscreen; the app remains usable. */
+  }
+  syncFullscreenButton();
+}
+function syncFullscreenButton(){
+  const active = !!document.fullscreenElement;
+  fullscreenToggle.querySelector('span').textContent = active ? 'Exit fullscreen' : 'Fullscreen';
+  fullscreenToggle.setAttribute('aria-label', active ? 'Exit fullscreen' : 'Enter fullscreen');
+  fullscreenToggle.title = active ? 'Exit fullscreen' : 'Enter fullscreen';
+}
+fullscreenToggle.addEventListener('click', async () => {
+  try {
+    if (document.fullscreenElement) await document.exitFullscreen();
+    else await enterFullscreen();
+  } catch (_) {}
+  syncFullscreenButton();
+});
+document.addEventListener('fullscreenchange', syncFullscreenButton);
+/* Browsers block fullscreen on page load. Request it from the first deliberate user action instead. */
 let unlock; const unlocked = new Promise(r => { unlock = r; });
 let remembered = false;
 try { remembered = sessionStorage.getItem('moments-unlocked') === '1'; } catch(_){}
@@ -787,7 +832,7 @@ function tryUnlock(){
   const word = gateInput.value.toLowerCase().replace(/[^a-z]/g, '');   /* ignores capitals, spaces, punctuation, emoji */
   if (lockHash('moments-lock:' + word) === LOCK_HASH){
     try { sessionStorage.setItem('moments-unlocked', '1'); } catch(_){}
-    gateMsg.textContent = ''; gateInput.blur(); gate.classList.add('open'); unlock();
+    gateMsg.textContent = ''; gateInput.blur(); enterFullscreen(); gate.classList.add('open'); unlock();
     setTimeout(() => { gate.hidden = true; }, 1000);
   } else {
     gateMsg.textContent = 'Not quite, try again ♡';
@@ -801,6 +846,7 @@ gateInput.addEventListener('keydown', e => { if (e.key === 'Enter'){ e.preventDe
 /* ---------------- start ---------------- */
 function setStatus(txt, warn){ const s = $('#status'); s.textContent = txt; s.classList.toggle('warn', !!warn); }
 $('#enter').addEventListener('click', () => {
+  enterFullscreen();
   entered = true; $('#intro').classList.add('hide'); canvas.focus({ preventScroll:true });
   setTimeout(showHint, 3200); $('#rail').classList.add('on'); $('#compass').classList.add('on');
 });
