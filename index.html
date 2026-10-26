@@ -494,8 +494,11 @@ function startVideo(m){
   if (u.vid){ if (u.vid.paused) u.vid.play().catch(()=>{}); return; }
   const v = document.createElement('video');
   v.crossOrigin = 'anonymous'; v.muted = true; v.defaultMuted = true; v.loop = true; v.playsInline = true;
-  v.setAttribute('muted',''); v.setAttribute('playsinline',''); v.preload = 'auto'; v.src = it.video;
+  v.setAttribute('muted',''); v.setAttribute('playsinline',''); v.setAttribute('autoplay',''); v.preload = 'auto'; v.src = it.video;
   u.vid = v;
+  const tryPlay = () => { if (u.vid === v && v.paused) v.play().catch(() => {}); };
+  v.addEventListener('loadedmetadata', tryPlay);
+  v.addEventListener('canplay', tryPlay);
   v.addEventListener('loadeddata', () => {
     if (u.vid !== v) return;
     if (!it.aspectKnown && v.videoWidth){ it.aspect = v.videoWidth / v.videoHeight; it.w = CONFIG.ITEM_HEIGHT * clamp(it.aspect,.6,1.9); it.aspectKnown = true; }
@@ -655,7 +658,16 @@ function setSoundUI(on){
     ? '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/>'
     : '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l4 6M21 9l-4 6"/>';
 }
+let viewerHistoryEntry = false;
 function openViewer(it){
+  if (!viewerOpen) {
+    /* Give the mobile Back button a gallery-viewer history step, so it closes
+       the photo/video instead of navigating away from the app. */
+    try {
+      history.pushState({ ...(history.state || {}), momentsViewer: true }, '', location.href);
+      viewerHistoryEntry = true;
+    } catch (_) { viewerHistoryEntry = false; }
+  }
   viewerOpen = true; vIndex = media.indexOf(it); targetTS = 0; setHovered(null);
   const m = it.mesh; const from = meshRect(m);
   m.userData.hide = true; viewer.classList.add('open');
@@ -670,8 +682,14 @@ function navigate(dir){
   old.style.opacity = 0; setTimeout(() => old.remove(), 400);
   vEl = null; vEl = mount(it, null);
 }
-function closeViewer(){
+function closeViewer(fromPopState = false){
   if (!viewerOpen) return;
+  /* If the user closes with the on-screen X/swipe, remove the viewer's
+     history entry too. If Back triggered this close, that entry is already gone. */
+  if (viewerHistoryEntry) {
+    viewerHistoryEntry = false;
+    if (!fromPopState) { try { history.back(); } catch (_) {} }
+  }
   const el = vEl, it = media[vIndex], m = it.mesh;
   viewerOpen = false; vEl = null; targetTS = 1;
   viewer.classList.remove('open');
@@ -681,6 +699,12 @@ function closeViewer(){
   setTimeout(() => el.remove(), 1000);
   soundBtn.classList.remove('show');
 }
+addEventListener('popstate', () => {
+  if (viewerOpen && viewerHistoryEntry) {
+    viewerHistoryEntry = false;
+    closeViewer(true);
+  }
+});
 soundBtn.addEventListener('click', () => {
   if (vEl && vEl.tagName === 'VIDEO'){ vEl.muted = !vEl.muted; setSoundUI(!vEl.muted); }
 });
@@ -848,12 +872,17 @@ function setStatus(txt, warn){ const s = $('#status'); s.textContent = txt; s.cl
 $('#enter').addEventListener('click', () => {
   enterFullscreen();
   entered = true; $('#intro').classList.add('hide'); canvas.focus({ preventScroll:true });
+  /* Start muted scene videos directly from this user gesture for stricter autoplay policies. */
+  requestAnimationFrame(() => updateVideos());
   setTimeout(showHint, 3200); $('#rail').classList.add('on'); $('#compass').classList.add('on');
 });
 let rz = 0;
 addEventListener('resize', () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(resize); });
 addEventListener('orientationchange', () => setTimeout(resize, 250));
-addEventListener('visibilitychange', () => { if (document.hidden) meshes.forEach(stopVideo); });
+addEventListener('visibilitychange', () => {
+  if (document.hidden) meshes.forEach(stopVideo);
+  else if (entered) requestAnimationFrame(() => updateVideos());
+});
 
 (async function init(){
   resize(); tick();
