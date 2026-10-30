@@ -345,6 +345,26 @@ let timeScale = 1, targetTS = 1, spinVel = 0;
 let camY = 0, camYTarget = 0, yRange = 0;
 const pointer = new THREE.Vector2(0,0), ps = new THREE.Vector2(0,0);
 let pointerType = 'mouse', hovered = null, drag = null;
+/* phone only: whatever sits in the middle of the screen gets the hover effect automatically */
+const isPhone = () => isTouch && Math.min(innerWidth, innerHeight) < 700;
+const centerSet = new Set();
+const CENTER_RX = .42, CENTER_RY = .26, CENTER_MAX = 3;   /* centre zone (NDC half-width / half-height), max items lit at once */
+const cTmp = new THREE.Vector3();
+function updateCenterFocus(){
+  centerSet.clear();
+  if (!isPhone() || !entered || viewerOpen) return;
+  const cand = [];
+  for (const m of meshes){
+    if (!m.visible || m.userData.hide || m.userData.item.type === 'quote') continue;
+    cTmp.setFromMatrixPosition(m.matrixWorld).project(camera);
+    if (cTmp.z >= 1) continue;
+    const d = (cTmp.x / CENTER_RX) ** 2 + (cTmp.y / CENTER_RY) ** 2;
+    if (d < 1) cand.push({ m, d });
+  }
+  cand.sort((a, b) => a.d - b.d);
+  cand.slice(0, CENTER_MAX).forEach(o => centerSet.add(o.m));
+  setHovered(cand.length ? cand[0].m : null);   /* closest one also shows its label */
+}
 let viewerOpen = false, vIndex = -1, vEl = null;
 const planeGeo = new THREE.PlaneGeometry(1,1);
 const loader = new THREE.TextureLoader(); loader.setCrossOrigin('anonymous');
@@ -529,6 +549,7 @@ function updateVideos(){
   const maxVids = isTouch ? Math.min(4, CONFIG.MAX_ACTIVE_VIDEOS) : CONFIG.MAX_ACTIVE_VIDEOS;
   const want = new Set(cand.slice(0, maxVids).map(o => o.m));
   if (hovered && hovered.userData.item.type === 'video') want.add(hovered);
+  centerSet.forEach(m => { if (m.userData.item.type === 'video') want.add(m); });
   if (viewerOpen && media[vIndex].type === 'video') want.add(media[vIndex].mesh);
   vids.forEach(m => want.has(m) ? startVideo(m) : stopVideo(m));
 }
@@ -542,7 +563,7 @@ function pick(){
 }
 function setHovered(m){
   if (m === hovered) return;
-  hovered = m; targetTS = m ? .1 : 1;
+  hovered = m; targetTS = (m && !isPhone()) ? .1 : 1;
   canvas.style.cursor = m ? 'pointer' : 'default';
   const lb = $('#label');
   if (m){ lb.textContent = m.userData.item.name; lb.classList.add('on'); } else lb.classList.remove('on');
@@ -571,7 +592,8 @@ canvas.addEventListener('pointermove', e => {
       camYV = clamp(camYV * .5 + (dy * k / dtm) * .5, -14, 14);
       scrollE = clamp(scrollE + dy * .003, -1.2, 1.2);
     } else { pitch = clamp(pitch + dy * .004, -1.2, 1.2); pitchV = dy * .24; }
-    setHovered(null); hideHint();
+    if (!isPhone()) setHovered(null);
+    hideHint();
   }
 });
 canvas.addEventListener('pointercancel', () => { drag = null; });
@@ -760,7 +782,7 @@ function tick(){
   meshes.forEach(m => {
     const u = m.userData, it = u.item, ring = it.ring;
     const ap = ease(clamp((enterT - u.delay) / 2.4, 0, 1));
-    u.hover += ((hovered === m ? 1 : 0) - u.hover) * Math.min(1, dt * 9);
+    u.hover += (((hovered === m || centerSet.has(m)) ? 1 : 0) - u.hover) * Math.min(1, dt * 9);
     if (ap <= 0.001){ m.visible = false; return; }
     m.visible = true;
     const ang = it.a0 + ring.spin + (1 - ap) * 3.2 * ring.dir;
@@ -785,6 +807,8 @@ function tick(){
   camera.position.set(ps.x * .6, camY + ps.y * .4, 0);
   camera.rotation.y = yaw - ps.x * .05 + (entered ? 0 : Math.sin(t * .15) * .25);
   camera.rotation.x = pitch + ps.y * .04;
+
+  camera.updateMatrixWorld(); updateCenterFocus();
 
   // hover (mouse only)
   if (entered && !viewerOpen && !drag && pointerType === 'mouse') setHovered(pick());
