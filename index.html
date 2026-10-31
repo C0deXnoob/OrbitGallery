@@ -7,10 +7,10 @@
 <meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-<meta name="apple-mobile-web-app-title" content="Moments">
+<meta name="apple-mobile-web-app-title" content="Our Orbit">
 <link rel="manifest" href="manifest.json">
 <link rel="icon" href="icon.svg" type="image/svg+xml">
-<title>Moments – a floating gallery</title>
+<title>Our Orbit – a floating gallery</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,300;0,500;1,300&family=Inter:wght@300;400;500&display=swap" rel="stylesheet">
@@ -23,6 +23,13 @@
   *{box-sizing:border-box;margin:0;padding:0}
   html,body{height:100%;background:var(--night);color:var(--ink);font-family:Inter,system-ui,sans-serif;overflow:hidden;overscroll-behavior:none;-webkit-tap-highlight-color:transparent}
   body{position:fixed;inset:0;width:100%}
+  /* blurred random-photo backdrop (two layers cross-fade) */
+  #bgBlur{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;
+    background:radial-gradient(ellipse at 50% 35%,#2a1040 0%,#120a24 55%,#0a0712 100%)}
+  #bgBlur canvas{position:absolute;inset:-8%;width:116%;height:116%;opacity:0;transition:opacity 2.8s ease-in-out;
+    filter:blur(22px) saturate(1.35) brightness(.62);will-change:opacity;transform:translateZ(0)}
+  #bgBlur canvas.on{opacity:1}
+  @media (pointer:coarse){#bgBlur canvas{filter:blur(14px) saturate(1.3) brightness(.62)}}
   #scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 
   /* ---------- intro ---------- */
@@ -152,9 +159,11 @@
   #gateForm.shake{animation:shake .45s}
   @keyframes shake{20%,60%{transform:translateX(-9px)}40%,80%{transform:translateX(9px)}}
   @media (prefers-reduced-motion:reduce){ .gate-heart,#gateForm.shake{animation:none} }
+  #compass,#fullscreenToggle{display:none !important}
 </style>
 </head>
 <body>
+<div id="bgBlur" aria-hidden="true"><canvas></canvas><canvas></canvas></div>
 <canvas id="scene" tabindex="0" aria-label="3D photo and video gallery"></canvas>
 <button id="fullscreenToggle" type="button" aria-label="Enter fullscreen" title="Enter fullscreen">
   <svg viewBox="0 0 24 24" aria-hidden="true"><path d="M8 3H3v5M16 3h5v5M3 16v5h5M21 16v5h-5"/></svg>
@@ -164,7 +173,7 @@
 <div id="gate" role="dialog" aria-modal="true" aria-labelledby="gateTitle">
   <div id="gateForm" role="group" aria-labelledby="gateTitle">
     <div class="gate-heart" aria-hidden="true">♡</div>
-    <h2 id="gateTitle">Moments</h2>
+    <h2 id="gateTitle">Our Orbit</h2>
     <p class="gate-sub">This gallery is private. Enter the secret word to step inside.</p>
     <p class="gate-hint">Hint: what I call you in the morning ☀</p>
     <input id="gateInput" type="password" placeholder="Secret word" aria-label="Secret word" autocomplete="off" autocapitalize="off" autocorrect="off" spellcheck="false" enterkeyhint="go">
@@ -176,7 +185,7 @@
 
 <div id="intro">
   <div class="inner">
-    <h1>Moments</h1>
+    <h1>Our Orbit</h1>
     <p class="sub">Step inside a 360° world of our photos, videos and the days that matter.</p>
     <p id="iq"></p>
     <button id="enter" disabled>Gathering memories…</button>
@@ -226,11 +235,12 @@ const ANISO = isTouch ? 2 : 4;
 
 /* ---------------- renderer / scene ---------------- */
 const canvas = $('#scene');
-const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, powerPreference:'high-performance' });
+const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true, powerPreference:'high-performance' });
+renderer.setClearColor(0x000000, 0);
 renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.5 : 2));
 renderer.outputEncoding = SRGB;
 const scene = new THREE.Scene();
-scene.background = new THREE.Color(0x0a0712);
+scene.background = null;   /* the blurred photo layer behind the canvas shows through */
 scene.fog = new THREE.FogExp2(0x0a0712, 0.022);
 const camera = new THREE.PerspectiveCamera(60, 1, 0.1, 200);
 camera.rotation.order = 'YXZ';
@@ -285,7 +295,7 @@ orb2.scale.set(3,3,1); scene.add(orb2);
 const sky = new THREE.Mesh(new THREE.SphereGeometry(95,48,32), new THREE.ShaderMaterial({ side:THREE.BackSide, depthWrite:false, uniforms:{ uT:{value:0} },
   vertexShader:'varying vec3 vP;void main(){vP=position;gl_Position=projectionMatrix*modelViewMatrix*vec4(position,1.);}',
   fragmentShader:'varying vec3 vP;uniform float uT;void main(){vec3 d=normalize(vP);float y=d.y;vec3 top=vec3(.035,.02,.09),mid=vec3(.2,.06,.24),hor=vec3(.95,.45,.5)*.55;vec3 c=mix(mid,top,smoothstep(0.,.8,y));c=mix(c,hor,exp(-abs(y)*7.)*.55);c=mix(c,vec3(.03,.015,.07),smoothstep(0.,-.6,y));float a=smoothstep(.05,.5,y)*smoothstep(.95,.45,y);float w=sin(d.x*4.+uT*.15+sin(d.z*3.+uT*.1)*2.)*.5+.5;float w2=sin(d.z*5.-uT*.12+sin(d.x*2.)*2.)*.5+.5;c+=vec3(.9,.45,.7)*pow(w,6.)*a*.35+vec3(.55,.45,1.)*pow(w2,6.)*a*.3;vec3 m=normalize(vec3(.35,.42,-.85));float md=dot(d,m);c+=vec3(1.,.85,.65)*(smoothstep(.9985,.9992,md)+pow(max(md,0.),60.)*.25);gl_FragColor=vec4(c,1.);}' }));
-sky.renderOrder = -1; sky.frustumCulled = false; scene.add(sky);
+sky.renderOrder = -1; sky.frustumCulled = false; sky.visible = false; scene.add(sky);
 const heartTex = (() => { const c = document.createElement('canvas'); c.width = c.height = 64; const g = c.getContext('2d');
   g.fillStyle = '#fff'; g.shadowColor = '#fff'; g.shadowBlur = 8; g.beginPath(); g.moveTo(32,54);
   g.bezierCurveTo(4,34,8,10,24,10); g.bezierCurveTo(29,10,32,14,32,18); g.bezierCurveTo(32,14,35,10,40,10); g.bezierCurveTo(56,10,60,34,32,54); g.fill();
@@ -388,7 +398,7 @@ async function listFolder(id, depth = 0){
     const params = new URLSearchParams({
       q: `'${id}' in parents and trashed=false and (mimeType contains 'image/' or mimeType contains 'video/' or mimeType='application/vnd.google-apps.folder')`,
       key: CONFIG.GOOGLE_API_KEY, pageSize: '1000', orderBy: 'name',
-      fields: 'nextPageToken,files(id,name,mimeType,thumbnailLink,imageMediaMetadata(width,height,rotation),videoMediaMetadata(width,height))'
+      fields: 'nextPageToken,files(id,name,mimeType,createdTime,modifiedTime,thumbnailLink,imageMediaMetadata(width,height,rotation,time),videoMediaMetadata(width,height))'
     });
     if (token) params.set('pageToken', token);
     const res = await fetch('https://www.googleapis.com/drive/v3/files?' + params);
@@ -408,7 +418,7 @@ async function listFolder(id, depth = 0){
       if (!isVideo && meta && meta.rotation % 2 === 1) [w,h] = [h,w];
       const base = f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+$/, '') : null;
       out.push({
-        id:f.id, name:f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g,' '), type:isVideo?'video':'image',
+        id:f.id, name: fmtWhen(f, meta) || f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g,' '), type:isVideo?'video':'image',
         aspect: w && h ? w/h : 1.5, aspectKnown: !!(w && h),
         thumb: base ? base + '=w800' : `https://drive.google.com/thumbnail?id=${f.id}&sz=w800`,
         thumbFallback: `https://drive.google.com/thumbnail?id=${f.id}&sz=w800`,
@@ -418,6 +428,18 @@ async function listFolder(id, depth = 0){
     }
   } while (token);
   return out;
+}
+
+/* show the date & time a photo was taken (EXIF) or, failing that, added to Drive - instead of the file name */
+function fmtWhen(f, meta){
+  let d = null;
+  const ex = !f.mimeType.startsWith('video/') && meta && meta.time;          /* EXIF "YYYY:MM:DD HH:MM:SS" (camera local time) */
+  const m = ex && /^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2})/.exec(ex);
+  if (m) d = new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5]);
+  else { const t = f.createdTime || f.modifiedTime; if (t) d = new Date(t); }
+  if (!d || isNaN(d)) return '';
+  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) + ' · ' +
+         d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
 }
 
 /* demo content so the page always works */
@@ -554,6 +576,48 @@ function updateVideos(){
   vids.forEach(m => want.has(m) ? startVideo(m) : stopVideo(m));
 }
 setInterval(updateVideos, 400);
+
+/* ---------------- blurred random-photo background ---------------- */
+const bgLayers = [...document.querySelectorAll('#bgBlur canvas')];
+let bgCur = -1;
+function bgPhotos(){
+  return meshes.filter(m => m.userData.thumbTex && m.userData.thumbTex.image && m.userData.item.type !== 'quote')
+               .map(m => m.userData.thumbTex.image);
+}
+function bgPaint(cv, imgs){
+  const portrait = innerHeight >= innerWidth;
+  const cols = portrait ? 2 : 3, rows = portrait ? 3 : 2;
+  cv.width = cols * 64; cv.height = rows * 64;                 /* tiny canvas: cheap to draw and to blur */
+  const g = cv.getContext('2d'), cw = cv.width / cols, ch = cv.height / rows;
+  g.fillStyle = '#0a0712'; g.fillRect(0, 0, cv.width, cv.height);
+  const pool = imgs.slice().sort(() => Math.random() - .5);
+  for (let i = 0; i < cols * rows; i++){
+    const im = pool[i % pool.length];
+    const iw = im.naturalWidth || im.width, ih = im.naturalHeight || im.height;
+    if (!iw || !ih) continue;
+    const sc = Math.max(cw / iw, ch / ih) * 1.25;             /* cover, slightly oversized so cell edges overlap-blend */
+    const dw = iw * sc, dh = ih * sc, x = (i % cols) * cw + (cw - dw) / 2, y = Math.floor(i / cols) * ch + (ch - dh) / 2;
+    try { g.drawImage(im, x, y, dw, dh); } catch (_) {}
+  }
+}
+function bgNext(){
+  const imgs = bgPhotos();
+  if (!imgs.length) return false;
+  const nxt = (bgCur + 1) % 2;
+  bgPaint(bgLayers[nxt], imgs);
+  const prev = bgCur;
+  bgLayers[nxt].classList.add('on');
+  if (prev >= 0) setTimeout(() => bgLayers[prev].classList.remove('on'), 120);
+  bgCur = nxt;
+  return true;
+}
+let bgRuns = 0;
+(function bgLoop(){
+  const ok = bgNext();
+  if (ok) bgRuns++;
+  /* refresh early a couple of times so the backdrop catches up as more photos finish loading */
+  setTimeout(bgLoop, !ok ? 1200 : bgRuns < 3 ? 3500 : (reduceMotion ? 14000 : 8000));
+})();
 
 /* ---------------- interaction ---------------- */
 function pick(){
