@@ -26,10 +26,10 @@
   /* blurred random-photo backdrop (two layers cross-fade) */
   #bgBlur{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;
     background:radial-gradient(ellipse at 50% 35%,#2a1040 0%,#120a24 55%,#0a0712 100%)}
-  #bgBlur canvas{position:absolute;inset:-8%;width:116%;height:116%;opacity:0;transition:opacity 2.8s ease-in-out;
-    filter:blur(7px) saturate(1.35) brightness(.62);will-change:opacity;transform:translateZ(0)}
+  #bgBlur canvas{position:absolute;left:-8%;top:-8%;width:116%;height:116%;opacity:0;transition:opacity 2.8s ease-in-out;
+    filter:blur(10px) saturate(1.35) brightness(.62);will-change:opacity;transform:translateZ(0);image-rendering:auto}
   #bgBlur canvas.on{opacity:1}
-  @media (pointer:coarse){#bgBlur canvas{filter:blur(7px) saturate(1.3) brightness(.62)}}
+  @media (pointer:coarse){#bgBlur canvas{filter:blur(10px) saturate(1.3) brightness(.62)}}
   #scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 
   /* ---------- intro ---------- */
@@ -164,7 +164,6 @@
 
   /* ---------- colour-matched glow behind the photos ---------- */
   #bgBlur::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,rgba(var(--tint,140,80,170),.32),transparent 72%)}
-  html.lite #bgBlur canvas{filter:none}
   html.lite #bgBlur::after{display:none}
 
   /* ---------- bottom-left dock: tour / music / favourites / on this day ---------- */
@@ -226,7 +225,6 @@
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="dock">
   <button class="dbtn" id="bTour" type="button" aria-label="Start auto tour" title="Auto tour"><svg viewBox="0 0 24 24" id="tourIcon"><path d="M7 5l12 7-12 7z"/></svg></button>
-  <button class="dbtn" id="bMusic" type="button" aria-label="Music" title="Music"><svg viewBox="0 0 24 24" id="musicIcon"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
   <button class="dbtn" id="bFav" type="button" aria-label="Show favourites only" title="Favourites only"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.6-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.4-7 10-7 10z"/></svg></button>
   <button class="dbtn" id="bOtd" type="button" aria-label="On this day" title="On this day" hidden><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></button>
 </div>
@@ -253,7 +251,6 @@ const CONFIG = {
   GOOGLE_API_KEY: 'AIzaSyBogI6YLzo4QaVJ9rhc2lrtrSHiMGPDJBQ',        // API key with Google Drive API enabled
   INCLUDE_SUBFOLDERS: true,
   MAX_ACTIVE_VIDEOS: 10,      // how many videos play at once in the 3D scene
-  MUSIC_URL: '',              // optional: link/path to your own looping mp3. Leave empty for the built-in soft ambient music
   RING_RADIUS: 7,
   ITEM_HEIGHT: 2.6
 };
@@ -268,7 +265,7 @@ const SRGB = THREE.sRGBEncoding;
 const isTouch = matchMedia('(pointer: coarse)').matches;
 const ANISO = isTouch ? 2 : 4;
 /* lite mode: older / low-memory phones get fewer particles, no CSS blur and fewer videos (force it with ?lite=1) */
-const LITE = /[?&]lite=1/.test(location.search) || (isTouch && ((navigator.deviceMemory && navigator.deviceMemory <= 4) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)));
+const LITE = /[?&]lite=1/.test(location.search) || (isTouch && navigator.deviceMemory && navigator.deviceMemory <= 2);
 if (LITE) document.documentElement.classList.add('lite');
 
 /* ---------------- renderer / scene ---------------- */
@@ -678,17 +675,19 @@ function bgPhotos(){
                .map(m => m.userData.thumbTex.image);
 }
 function bgPaint(cv, imgs){
-  const portrait = innerHeight >= innerWidth;
-  const cols = portrait ? 2 : 3, rows = portrait ? 3 : 2;
-  cv.width = cols * 64; cv.height = rows * 64;                 /* tiny canvas: cheap to draw and to blur */
-  const g = cv.getContext('2d'), cw = cv.width / cols, ch = cv.height / rows;
-  g.fillStyle = '#0a0712'; g.fillRect(0, 0, cv.width, cv.height);
+  const aspect = innerWidth / Math.max(1, innerHeight), portrait = aspect < 1;
+  const cols = portrait ? 2 : 3, rows = portrait ? 4 : 2;
+  const H = LITE ? 192 : isTouch ? 320 : 256, W = Math.max(64, Math.round(H * aspect));   /* same shape as the screen, so nothing is stretched */
+  cv.width = W; cv.height = H;
+  const g = cv.getContext('2d'), cw = W / cols, ch = H / rows;
+  g.imageSmoothingEnabled = true; g.imageSmoothingQuality = 'high';
+  g.fillStyle = '#0a0712'; g.fillRect(0, 0, W, H);
   const pool = imgs.slice().sort(() => Math.random() - .5);
   for (let i = 0; i < cols * rows; i++){
     const im = pool[i % pool.length];
     const iw = im.naturalWidth || im.width, ih = im.naturalHeight || im.height;
     if (!iw || !ih) continue;
-    const sc = Math.max(cw / iw, ch / ih) * 1.25;             /* cover, slightly oversized so cell edges overlap-blend */
+    const sc = Math.max(cw / iw, ch / ih) * 1.3;               /* cover, oversized so neighbouring cells overlap and blend */
     const dw = iw * sc, dh = ih * sc, x = (i % cols) * cw + (cw - dw) / 2, y = Math.floor(i / cols) * ch + (ch - dh) / 2;
     try { g.drawImage(im, x, y, dw, dh); } catch (_) {}
   }
@@ -704,7 +703,8 @@ function bgNext(){
   bgCur = nxt;
   return true;
 }
-let bgRuns = 0;
+let bgRuns = 0, bgRz = 0;
+addEventListener('resize', () => { clearTimeout(bgRz); bgRz = setTimeout(() => { if (bgCur >= 0){ const imgs = bgPhotos(); if (imgs.length) bgPaint(bgLayers[bgCur], imgs); } }, 300); });
 (function bgLoop(){
   const ok = bgNext();
   if (ok) bgRuns++;
@@ -835,7 +835,6 @@ function mount(it, startRect){
 }
 function setSoundUI(on){
   soundBtn.setAttribute('aria-label', on ? 'Turn sound off' : 'Turn sound on');
-  Music.setDuck(on ? .22 : 1);
   $('#soundIcon').innerHTML = on
     ? '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/>'
     : '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l4 6M21 9l-4 6"/>';
@@ -881,7 +880,6 @@ function closeViewer(fromPopState = false){
   viewerOpen = false; vEl = null; targetTS = 1;
   viewer.classList.remove('open');
   if (yearShown) yearTag.classList.add('on');
-  Music.setDuck(1);
   const r = meshRect(m);
   el.classList.add('anim'); setRect(el, r);
   setTimeout(() => { m.userData.hide = false; el.style.opacity = 0; }, 560);
@@ -984,60 +982,6 @@ $('#bFav').addEventListener('click', e => {
   if (favOnly && tourOn) { tourIdx = -1; tourStep(); }
 });
 
-/* ---- ambient music (generated in the browser; or set CONFIG.MUSIC_URL) ---- */
-const Music = (() => {
-  let ctx = null, master = null, bus = null, on = true, looping = false, timer = 0, audioEl = null, duck = 1;
-  try { on = localStorage.getItem('orbit-music') !== 'off'; } catch (_) {}
-  const SCALE = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
-  function ensure(){
-    if (CONFIG.MUSIC_URL){ if (!audioEl){ audioEl = new Audio(CONFIG.MUSIC_URL); audioEl.loop = true; audioEl.volume = 0; } return; }
-    if (ctx) return;
-    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
-    ctx = new AC(); master = ctx.createGain(); master.gain.value = 0;
-    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
-    const dly = ctx.createDelay(1.5); dly.delayTime.value = .46;
-    const fb = ctx.createGain(); fb.gain.value = .42; const wet = ctx.createGain(); wet.gain.value = .5;
-    dly.connect(fb); fb.connect(dly); dly.connect(wet); wet.connect(lp);
-    bus = ctx.createGain(); bus.connect(lp); bus.connect(dly); lp.connect(master); master.connect(ctx.destination);
-    [65.41, 98.00, 130.81].forEach((f, i) => {                      /* soft low drone */
-      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f; o.detune.value = (i - 1) * 4;
-      const g = ctx.createGain(); g.gain.value = .05; o.connect(g); g.connect(bus); o.start();
-    });
-  }
-  function note(){
-    if (!ctx || ctx.state !== 'running') return;
-    const f = SCALE[(Math.random() * SCALE.length) | 0] * (Math.random() < .25 ? .5 : 1), t = ctx.currentTime;
-    const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
-    const g = ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.09, t + .06); g.gain.exponentialRampToValueAtTime(.0005, t + 3.2);
-    o.connect(g); g.connect(bus); o.start(t); o.stop(t + 3.4);
-  }
-  function loop(){ clearTimeout(timer); note(); timer = setTimeout(loop, 1800 + Math.random() * 2600); }
-  function level(){
-    const v = on ? .5 * duck : 0;
-    if (master && ctx){ const t = ctx.currentTime; master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value, t); master.gain.linearRampToValueAtTime(v, t + 1.2); }
-    if (audioEl) audioEl.volume = clamp(v, 0, 1);
-  }
-  function ui(){ $('#bMusic').classList.toggle('active', on); $('#musicIcon').innerHTML = on
-    ? '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>'
-    : '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path d="M3 3l18 18"/>'; }
-  function start(){                                                 /* must be called from a tap / click */
-    ensure();
-    if (ctx && ctx.state === 'suspended') ctx.resume();
-    if (audioEl && on) audioEl.play().catch(() => {});
-    if (ctx && !looping){ looping = true; loop(); }
-    level(); ui();
-  }
-  function toggle(){ on = !on; try { localStorage.setItem('orbit-music', on ? 'on' : 'off'); } catch (_) {} if (on) start(); else { level(); ui(); } return on; }
-  function setDuck(d){ duck = d; level(); }
-  function suspend(h){
-    if (ctx){ if (h) ctx.suspend(); else if (on) ctx.resume(); }
-    if (audioEl){ if (h) audioEl.pause(); else if (on) audioEl.play().catch(() => {}); }
-  }
-  ui();
-  return { start, toggle, setDuck, suspend, get on(){ return on; } };
-})();
-$('#bMusic').addEventListener('click', () => { Music.toggle(); toast(Music.on ? 'Music on' : 'Music off', 1600); });
-addEventListener('visibilitychange', () => Music.suspend(document.hidden));
 
 /* ---- fly the camera to an item, and the auto tour built on it ---- */
 let flyItem = null, flyUntil = 0, tourOn = false, tourMesh = null, tourTimer = 0, tourIdx = -1;
@@ -1277,7 +1221,7 @@ $('#enter').addEventListener('click', () => {
   /* Start muted scene videos directly from this user gesture for stricter autoplay policies. */
   requestAnimationFrame(() => updateVideos());
   setTimeout(showHint, 3200); $('#rail').classList.add('on'); $('#compass').classList.add('on');
-  $('#dock').classList.add('on'); Music.start(); setTimeout(otdAnnounce, 3800);
+  $('#dock').classList.add('on'); setTimeout(otdAnnounce, 3800);
 });
 let rz = 0;
 addEventListener('resize', () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(resize); });
