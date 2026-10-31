@@ -27,9 +27,9 @@
   #bgBlur{position:fixed;inset:0;z-index:0;overflow:hidden;pointer-events:none;
     background:radial-gradient(ellipse at 50% 35%,#2a1040 0%,#120a24 55%,#0a0712 100%)}
   #bgBlur canvas{position:absolute;inset:-8%;width:116%;height:116%;opacity:0;transition:opacity 2.8s ease-in-out;
-    filter:blur(10px) saturate(1.35) brightness(.62);will-change:opacity;transform:translateZ(0)}
+    filter:blur(7px) saturate(1.35) brightness(.62);will-change:opacity;transform:translateZ(0)}
   #bgBlur canvas.on{opacity:1}
-  @media (pointer:coarse){#bgBlur canvas{filter:blur(14px) saturate(1.3) brightness(.62)}}
+  @media (pointer:coarse){#bgBlur canvas{filter:blur(7px) saturate(1.3) brightness(.62)}}
   #scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 
   /* ---------- intro ---------- */
@@ -68,8 +68,9 @@
     transition:background .6s,backdrop-filter .6s,-webkit-backdrop-filter .6s,visibility 0s .7s}
   #viewer.open{visibility:visible;background:rgba(10,7,18,.9);backdrop-filter:blur(16px);-webkit-backdrop-filter:blur(16px);transition-delay:0s}
   .media{position:absolute;opacity:1;border-radius:6px;object-fit:fill;background:#000;box-shadow:0 30px 120px rgba(0,0,0,.7);
-    transition:opacity .35s ease;user-select:none;-webkit-user-drag:none}
-  .media.anim{transition:left .75s var(--ease),top .75s var(--ease),width .75s var(--ease),height .75s var(--ease),opacity .4s ease}
+    transition:opacity .35s ease,transform .28s ease;user-select:none;-webkit-user-drag:none;touch-action:none}
+  .media.panning{transition:opacity .35s ease !important}
+  .media.anim{transition:left .75s var(--ease),top .75s var(--ease),width .75s var(--ease),height .75s var(--ease),opacity .4s ease,transform .28s ease}
   .btn{position:absolute;z-index:3;display:grid;place-items:center;width:48px;height:48px;border-radius:50%;
     border:1px solid rgba(255,255,255,.2);background:var(--glass);color:#fff;cursor:pointer;
     opacity:0;transition:opacity .5s .3s,background .3s,transform .3s}
@@ -159,7 +160,31 @@
   #gateForm.shake{animation:shake .45s}
   @keyframes shake{20%,60%{transform:translateX(-9px)}40%,80%{transform:translateX(9px)}}
   @media (prefers-reduced-motion:reduce){ .gate-heart,#gateForm.shake{animation:none} }
-  #compass,#fullscreenToggle{display:none !important}
+  #compass,#fullscreenToggle,#label{display:none !important}
+
+  /* ---------- colour-matched glow behind the photos ---------- */
+  #bgBlur::after{content:'';position:absolute;inset:0;background:radial-gradient(ellipse at 50% 45%,rgba(var(--tint,140,80,170),.32),transparent 72%)}
+  html.lite #bgBlur canvas{filter:none}
+  html.lite #bgBlur::after{display:none}
+
+  /* ---------- bottom-left dock: tour / music / favourites / on this day ---------- */
+  #dock{position:fixed;left:14px;bottom:max(14px,env(safe-area-inset-bottom));z-index:6;display:flex;gap:10px;opacity:0;pointer-events:none;transition:opacity 1s}
+  #dock.on{opacity:1;pointer-events:auto}
+  .dbtn{width:44px;height:44px;padding:0;border-radius:50%;display:grid;place-items:center;border:1px solid rgba(255,255,255,.2);background:var(--glass);color:#fff;cursor:pointer;
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);transition:background .25s,transform .25s,box-shadow .25s,border-color .25s}
+  .dbtn:hover{background:rgba(255,255,255,.18);transform:scale(1.07)}
+  .dbtn svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+  .dbtn.active{background:rgba(255,159,194,.28);border-color:var(--rose);box-shadow:0 0 22px rgba(255,159,194,.35)}
+  .dbtn[hidden]{display:none}
+  #toast,#yearTag{position:fixed;left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;opacity:0;transition:opacity .8s;padding:.45rem 1.2rem;border-radius:999px;
+    background:linear-gradient(135deg,rgba(255,255,255,.15),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.18);
+    backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--ink);white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
+  #yearTag{top:max(16px,env(safe-area-inset-top));font:italic 300 1.15rem 'Cormorant Garamond',Georgia,serif;letter-spacing:.04em}
+  #yearTag.on{opacity:.88}
+  #toast{top:calc(max(16px,env(safe-area-inset-top)) + 52px);font-size:.85rem;font-weight:300}
+  #toast.on{opacity:1}
+  #fav{top:max(18px,env(safe-area-inset-top));left:18px}
+  #fav.on svg{fill:var(--rose);stroke:var(--rose)}
 </style>
 </head>
 <body>
@@ -197,8 +222,17 @@
 <div id="status"></div>
 <div id="compass"><i></i>360°</div>
 <div class="rail" id="rail"><div id="thumb"></div></div>
+<div id="yearTag" aria-live="polite"></div>
+<div id="toast" role="status" aria-live="polite"></div>
+<div id="dock">
+  <button class="dbtn" id="bTour" type="button" aria-label="Start auto tour" title="Auto tour"><svg viewBox="0 0 24 24" id="tourIcon"><path d="M7 5l12 7-12 7z"/></svg></button>
+  <button class="dbtn" id="bMusic" type="button" aria-label="Music" title="Music"><svg viewBox="0 0 24 24" id="musicIcon"><path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/></svg></button>
+  <button class="dbtn" id="bFav" type="button" aria-label="Show favourites only" title="Favourites only"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.6-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.4-7 10-7 10z"/></svg></button>
+  <button class="dbtn" id="bOtd" type="button" aria-label="On this day" title="On this day" hidden><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></button>
+</div>
 
 <div id="viewer" role="dialog" aria-modal="true" aria-label="Full screen viewer">
+  <button class="btn" id="fav" aria-label="Add to favourites"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.6-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.4-7 10-7 10z"/></svg></button>
   <button class="btn" id="close" aria-label="Close"><svg viewBox="0 0 24 24"><path d="M6 6l12 12M18 6L6 18"/></svg></button>
   <button class="btn" id="sound" aria-label="Turn sound on"><svg viewBox="0 0 24 24" id="soundIcon"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l4 6M21 9l-4 6"/></svg></button>
   <button class="btn" id="prev" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
@@ -219,6 +253,7 @@ const CONFIG = {
   GOOGLE_API_KEY: 'AIzaSyBogI6YLzo4QaVJ9rhc2lrtrSHiMGPDJBQ',        // API key with Google Drive API enabled
   INCLUDE_SUBFOLDERS: true,
   MAX_ACTIVE_VIDEOS: 10,      // how many videos play at once in the 3D scene
+  MUSIC_URL: '',              // optional: link/path to your own looping mp3. Leave empty for the built-in soft ambient music
   RING_RADIUS: 7,
   ITEM_HEIGHT: 2.6
 };
@@ -232,12 +267,15 @@ const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SRGB = THREE.sRGBEncoding;
 const isTouch = matchMedia('(pointer: coarse)').matches;
 const ANISO = isTouch ? 2 : 4;
+/* lite mode: older / low-memory phones get fewer particles, no CSS blur and fewer videos (force it with ?lite=1) */
+const LITE = /[?&]lite=1/.test(location.search) || (isTouch && ((navigator.deviceMemory && navigator.deviceMemory <= 4) || (navigator.hardwareConcurrency && navigator.hardwareConcurrency <= 4)));
+if (LITE) document.documentElement.classList.add('lite');
 
 /* ---------------- renderer / scene ---------------- */
 const canvas = $('#scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true, powerPreference:'high-performance' });
 renderer.setClearColor(0x000000, 0);
-renderer.setPixelRatio(Math.min(devicePixelRatio, isTouch ? 1.5 : 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, LITE ? 1.25 : isTouch ? 1.5 : 2));
 renderer.outputEncoding = SRGB;
 const scene = new THREE.Scene();
 scene.background = null;   /* the blurred photo layer behind the canvas shows through */
@@ -280,8 +318,8 @@ function makePoints(n, rMin, rMax, ySpread, size, opacity){
     depthWrite:false, blending:THREE.AdditiveBlending, sizeAttenuation:true });
   const p = new THREE.Points(geo, mat); scene.add(p); return p;
 }
-const stars = makePoints(isTouch ? 800 : 1400, 25, 80, 90, 0.7, .9);
-const dust  = makePoints(420, 3, 15, 22, 0.16, .75);
+const stars = makePoints(LITE ? 420 : isTouch ? 800 : 1400, 25, 80, 90, 0.7, .9);
+const dust  = makePoints(LITE ? 180 : 420, 3, 15, 22, 0.16, .75);
 
 /* intro orb that follows the pointer */
 const orb = new THREE.Sprite(new THREE.SpriteMaterial({ map:glowTex, color:0xf2d3a0, transparent:true, blending:THREE.AdditiveBlending, depthWrite:false }));
@@ -332,13 +370,25 @@ function quoteCanvas(text, tint, head){
 }
 let qCount = 0;
 const DATES = [['4 March 2023','We met for the first time after our school days.'],['28 September 2023','We both confessed our feelings.'],['19 July 2025',null],['10 January 2026',null],['1 May 2026',null],['13 August 2026',null]];
-function withQuotes(list){
+const MONTHS = ['january','february','march','april','may','june','july','august','september','october','november','december'];
+function parseHuman(str){ const m = /(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/.exec(str); if (!m) return NaN; const mi = MONTHS.indexOf(m[2].toLowerCase()); return mi < 0 ? NaN : new Date(+m[3], mi, +m[1]).getTime(); }
+function withQuotes(list, chrono){
   const out = [];
   list.forEach((it,i) => { out.push(it);
     if ((i+1) % 4 === 0){ out.push({ id:'q'+qCount, name:'', type:'quote', aspect:1.7, aspectKnown:true, canvas:quoteCanvas(QUOTES[qCount % QUOTES.length], TINTS[qCount % 3]) }); qCount++; } });
-  const step = Math.max(2, Math.floor(out.length / (DATES.length + 1)));
-  DATES.forEach(([d,tx],i) => out.splice(Math.min(out.length, (i+1)*step + i), 0,
-    { id:'d'+i, name:'', type:'quote', aspect:1.7, aspectKnown:true, canvas:quoteCanvas(tx || QUOTES[(i+6) % QUOTES.length], '#f2d3a0', d) }));
+  const card = (d, tx, i) => ({ id:'d'+i, isDate:true, name:'', type:'quote', aspect:1.7, aspectKnown:true, canvas:quoteCanvas(tx || QUOTES[(i+6) % QUOTES.length], '#f2d3a0', d) });
+  if (chrono){
+    /* timeline cards slot in where they belong in time (latest first, so same-gap cards keep their order) */
+    DATES.map(([d,tx],i) => ({ d, tx, i, ts:parseHuman(d) })).filter(o => !isNaN(o.ts)).sort((x,y) => y.ts - x.ts).forEach(o => {
+      let idx = out.length;
+      for (let k = 0; k < out.length; k++){ const x = out[k]; if (x.type !== 'quote' && x.ts && x.ts > o.ts){ idx = k; break; } }
+      while (idx > 0 && out[idx-1].isDate) idx--;               /* land before any later date card already in this gap */
+      out.splice(idx, 0, card(o.d, o.tx, o.i));
+    });
+  } else {
+    const step = Math.max(2, Math.floor(out.length / (DATES.length + 1)));
+    DATES.forEach(([d,tx],i) => out.splice(Math.min(out.length, (i+1)*step + i), 0, card(d, tx, i)));
+  }
   return out;
 }
 function sheenMat(it){
@@ -350,6 +400,7 @@ function sheenMat(it){
 
 /* ---------------- state ---------------- */
 let items = [], media = [], meshes = [], rings = [];
+let chronoMode = false;
 let entered = false, enterT = 0, ready = false;
 let timeScale = 1, targetTS = 1, spinVel = 0;
 let camY = 0, camYTarget = 0, yRange = 0;
@@ -417,7 +468,9 @@ async function listFolder(id, depth = 0){
       let w = meta && meta.width, h = meta && meta.height;
       if (!isVideo && meta && meta.rotation % 2 === 1) [w,h] = [h,w];
       const base = f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+$/, '') : null;
+      const wd = whenDate(f, meta);
       out.push({
+        ts: wd ? wd.getTime() : 0, thumbSmall: base ? base + '=w160' : null,
         id:f.id, name: fmtWhen(f, meta) || f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g,' '), type:isVideo?'video':'image',
         aspect: w && h ? w/h : 1.5, aspectKnown: !!(w && h),
         thumb: base ? base + '=w800' : `https://drive.google.com/thumbnail?id=${f.id}&sz=w800`,
@@ -430,14 +483,18 @@ async function listFolder(id, depth = 0){
   return out;
 }
 
-/* show the date & time a photo was taken (EXIF) or, failing that, added to Drive - instead of the file name */
-function fmtWhen(f, meta){
+/* when was it taken (EXIF) or, failing that, added to Drive */
+function whenDate(f, meta){
   let d = null;
   const ex = !f.mimeType.startsWith('video/') && meta && meta.time;          /* EXIF "YYYY:MM:DD HH:MM:SS" (camera local time) */
   const m = ex && /^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2})/.exec(ex);
   if (m) d = new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5]);
   else { const t = f.createdTime || f.modifiedTime; if (t) d = new Date(t); }
-  if (!d || isNaN(d)) return '';
+  return (d && !isNaN(d)) ? d : null;
+}
+function fmtWhen(f, meta){
+  const d = whenDate(f, meta);
+  if (!d) return '';
   return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) + ' · ' +
          d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
 }
@@ -467,6 +524,11 @@ function demoItems(){
 }
 
 /* ---------------- build the 3D gallery ---------------- */
+function ringLabel(a, b){
+  const da = new Date(a), db = new Date(b), mo = d => d.toLocaleDateString('en-GB', { month:'short' });
+  if (da.getFullYear() === db.getFullYear()) return da.getMonth() === db.getMonth() ? `${mo(da)} ${da.getFullYear()}` : `${mo(da)} – ${mo(db)} ${da.getFullYear()}`;
+  return `${mo(da)} ${da.getFullYear()} – ${mo(db)} ${db.getFullYear()}`;
+}
 function buildGallery(list){
   items = list; media = items.filter(i => i.type !== 'quote');
   const H = CONFIG.ITEM_HEIGHT, R = CONFIG.RING_RADIUS, GAP = 0.9, ROW = H + 1.0;
@@ -474,20 +536,26 @@ function buildGallery(list){
   const totalW = items.reduce((s,i) => s + i.w + GAP, 0);
   const L = Math.max(2, Math.ceil(totalW / (2*Math.PI*R*.92)));
   const groups = Array.from({length:L}, () => []);
-  items.forEach((it,i) => groups[i % L].push(it));
+  if (chronoMode){
+    /* rings follow time: each ring is a stretch of days, oldest at the bottom, newest at the top */
+    const per = totalW / L; let cum = 0;
+    items.forEach(it => { const gi = Math.min(L-1, Math.floor((cum + (it.w + GAP)/2) / per)); groups[gi].push(it); cum += it.w + GAP; });
+  } else items.forEach((it,i) => groups[i % L].push(it));
 
   groups.forEach((arr, ri) => {
     const sumW = arr.reduce((s,i) => s + i.w, 0);
     const slack = Math.max(0, 2*Math.PI*R - sumW) / arr.length;
     const dir = ri % 2 ? -1 : 1;
     const ring = { dir, speed:(0.032 + ri*0.007) * dir * (reduceMotion ? .3 : 1), spin:Math.random()*6, y:(ri - (L-1)/2) * ROW };
+    const tss = arr.filter(i => i.ts).map(i => i.ts);
+    if (chronoMode && tss.length) ring.label = ringLabel(Math.min(...tss), Math.max(...tss));
     let cum = 0;
     arr.forEach(it => {
       it.a0 = (cum + it.w/2) / R; cum += it.w + slack; it.ring = ring;
       const mat = new THREE.MeshBasicMaterial({ map:placeholder, transparent:true, opacity:0, toneMapped:false });
       const mesh = new THREE.Mesh(planeGeo, mat);
       const glow = new THREE.Mesh(planeGeo, sheenMat(it)); glow.position.z = .01; mesh.add(glow);
-      mesh.userData = { item:it, glow, phase:Math.random()*6.28, hover:0, loaded:0, hide:false,
+      mesh.userData = { item:it, glow, phase:Math.random()*6.28, hover:0, loaded:0, hide:false, show:1,
         delay:Math.random()*.9 + items.indexOf(it)*.025, yo:(Math.random()-.5)*14, vid:null, videoTex:null, thumbTex:null };
       mesh.visible = false; it.mesh = mesh; meshes.push(mesh); scene.add(mesh);
     });
@@ -510,6 +578,21 @@ function pump(){
     });
   }
 }
+const avgC = document.createElement('canvas'); avgC.width = avgC.height = 4;
+const avgG = avgC.getContext('2d', { willReadFrequently:true });
+function computeAvg(m, tex){
+  try {
+    avgG.drawImage(tex.image, 0, 0, 4, 4);
+    const d = avgG.getImageData(0, 0, 4, 4).data; let r = 0, g = 0, b = 0;
+    for (let i = 0; i < 64; i += 4){ r += d[i]; g += d[i+1]; b += d[i+2]; }
+    m.userData.avg = [r/16, g/16, b/16];
+  } catch (_) {}
+}
+/* the sharp version loads in a second, smaller queue after the tiny preview is already on screen */
+const bigQueue = []; let bigActive = 0;
+function pumpBig(){
+  while (bigActive < 4 && bigQueue.length){ bigActive++; bigQueue.shift()().then(() => { bigActive--; pumpBig(); }); }
+}
 function loadThumb(m){
   const qi = m.userData.item;
   if (qi.type === 'quote'){
@@ -518,14 +601,24 @@ function loadThumb(m){
   }
   return new Promise(res => {
     const it = m.userData.item;
-    const attempt = (url, fb) => loader.load(url, tex => {
+    const apply = tex => {
       tex.encoding = SRGB; tex.anisotropy = ANISO; tex.minFilter = THREE.LinearMipmapLinearFilter;
-      m.userData.thumbTex = tex;
+      const old = m.userData.thumbTex; m.userData.thumbTex = tex;
       if (!m.userData.videoTex){ m.material.map = tex; m.material.needsUpdate = true; }
       if (!it.aspectKnown){ it.aspect = tex.image.width / tex.image.height; it.w = CONFIG.ITEM_HEIGHT * clamp(it.aspect, .6, 1.9); it.aspectKnown = true; }
-      m.userData.loaded = 1; res();
-    }, undefined, () => { if (fb) attempt(fb, null); else { m.userData.loaded = 1; res(); } });
-    attempt(it.thumb, it.thumbFallback);
+      m.userData.loaded = 1;
+      if (old && old !== tex) old.dispose();
+      computeAvg(m, tex);
+    };
+    const loadBig = () => new Promise(done => {
+      const attempt = (url, fb) => loader.load(url, tex => { apply(tex); done(); }, undefined,
+        () => { if (fb) attempt(fb, null); else { m.userData.loaded = 1; done(); } });
+      attempt(it.thumb, it.thumbFallback);
+    });
+    if (it.thumbSmall){
+      const next = () => { bigQueue.push(loadBig); pumpBig(); res(); };
+      loader.load(it.thumbSmall, tex => { apply(tex); next(); }, undefined, next);
+    } else loadBig().then(res);
   });
 }
 
@@ -568,7 +661,7 @@ function updateVideos(){
     if (tmpV.z < 1 && Math.abs(tmpV.x) < 1.2 && Math.abs(tmpV.y) < 1.2) cand.push({ m, d:tmpV.x*tmpV.x + tmpV.y*tmpV.y });
   });
   cand.sort((a,b) => a.d - b.d);
-  const maxVids = isTouch ? Math.min(4, CONFIG.MAX_ACTIVE_VIDEOS) : CONFIG.MAX_ACTIVE_VIDEOS;
+  const maxVids = LITE ? 2 : isTouch ? Math.min(4, CONFIG.MAX_ACTIVE_VIDEOS) : CONFIG.MAX_ACTIVE_VIDEOS;
   const want = new Set(cand.slice(0, maxVids).map(o => o.m));
   if (hovered && hovered.userData.item.type === 'video') want.add(hovered);
   centerSet.forEach(m => { if (m.userData.item.type === 'video') want.add(m); });
@@ -630,7 +723,7 @@ function setHovered(m){
   hovered = m; targetTS = (m && !isPhone()) ? .1 : 1;
   canvas.style.cursor = m ? 'pointer' : 'default';
   const lb = $('#label');
-  if (m){ lb.textContent = m.userData.item.name; lb.classList.add('on'); } else lb.classList.remove('on');
+  lb.classList.remove('on');   /* names / dates are never shown */
 }
 function setPointer(e){
   pointer.set(e.clientX / innerWidth * 2 - 1, -(e.clientY / innerHeight * 2 - 1));
@@ -720,7 +813,7 @@ function makeMedia(it){
     el.addEventListener('canplay', () => el.play().catch(()=>{}));
     const m = it.mesh.userData.vid; if (m && m.currentTime) el.currentTime = m.currentTime;
   } else {
-    el = new Image(); el.crossOrigin = 'anonymous'; el.alt = it.name; el.draggable = false; el.src = it.thumb;
+    el = new Image(); el.crossOrigin = 'anonymous'; el.alt = ''; el.draggable = false; el.src = it.thumb;
     const big = new Image(); big.crossOrigin = 'anonymous';
     big.onload = () => { if (vEl === el) el.src = big.src; };
     big.src = it.full;
@@ -733,13 +826,16 @@ function mount(it, startRect){
   if (startRect){ setRect(el, startRect); } else { setRect(el, final); el.style.opacity = 0; }
   viewer.appendChild(el); void el.offsetWidth; vEl = el;
   requestAnimationFrame(() => requestAnimationFrame(() => { el.classList.add('anim'); setRect(el, final); el.style.opacity = 1; }));
-  caption.textContent = `${it.name}  ·  ${media.indexOf(it) + 1} of ${media.length}`;
+  caption.textContent = `${media.indexOf(it) + 1} of ${media.length}`;
+  zoom = { s:1, x:0, y:0 }; pan = null;
+  $('#fav').classList.toggle('on', favs.has(it.id));
   soundBtn.classList.toggle('show', it.type === 'video');
   setSoundUI(false);
   return el;
 }
 function setSoundUI(on){
   soundBtn.setAttribute('aria-label', on ? 'Turn sound off' : 'Turn sound on');
+  Music.setDuck(on ? .22 : 1);
   $('#soundIcon').innerHTML = on
     ? '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M16.5 8.5a5 5 0 010 7M19 6a8.5 8.5 0 010 12"/>'
     : '<path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l4 6M21 9l-4 6"/>';
@@ -755,14 +851,18 @@ function openViewer(it){
     } catch (_) { viewerHistoryEntry = false; }
   }
   viewerOpen = true; vIndex = media.indexOf(it); targetTS = 0; setHovered(null);
+  stopTour(); flyItem = null; yearTag.classList.remove('on');
   const m = it.mesh; const from = meshRect(m);
   m.userData.hide = true; viewer.classList.add('open');
   mount(it, from); hideHint();
 }
 function navigate(dir){
   if (!viewerOpen) return;
+  resetZoom();
   const old = vEl, oldItem = media[vIndex];
-  vIndex = (vIndex + dir + media.length) % media.length;
+  let ni = vIndex;
+  for (let k = 0; k < media.length; k++){ ni = (ni + dir + media.length) % media.length; if (!favOnly || favs.has(media[ni].id)) break; }
+  vIndex = ni;
   const it = media[vIndex];
   oldItem.mesh.userData.hide = false; it.mesh.userData.hide = true;
   old.style.opacity = 0; setTimeout(() => old.remove(), 400);
@@ -770,6 +870,7 @@ function navigate(dir){
 }
 function closeViewer(fromPopState = false){
   if (!viewerOpen) return;
+  resetZoom();
   /* If the user closes with the on-screen X/swipe, remove the viewer's
      history entry too. If Back triggered this close, that entry is already gone. */
   if (viewerHistoryEntry) {
@@ -779,6 +880,8 @@ function closeViewer(fromPopState = false){
   const el = vEl, it = media[vIndex], m = it.mesh;
   viewerOpen = false; vEl = null; targetTS = 1;
   viewer.classList.remove('open');
+  if (yearShown) yearTag.classList.add('on');
+  Music.setDuck(1);
   const r = meshRect(m);
   el.classList.add('anim'); setRect(el, r);
   setTimeout(() => { m.userData.hide = false; el.style.opacity = 0; }, 560);
@@ -797,15 +900,51 @@ soundBtn.addEventListener('click', () => {
 $('#close').addEventListener('click', closeViewer);
 $('#prev').addEventListener('click', () => navigate(-1));
 $('#next').addEventListener('click', () => navigate(1));
-let sw = null, swipedAt = 0;
-viewer.addEventListener('pointerdown', e => { sw = e.target.closest('.btn') ? null : { x:e.clientX, y:e.clientY }; });
+let sw = null, swipedAt = 0, zoom = { s:1, x:0, y:0 }, pan = null, lastTap = { t:0, x:0, y:0 };
+function applyZoom(){ if (vEl) vEl.style.transform = zoom.s > 1 ? `translate(${zoom.x}px,${zoom.y}px) scale(${zoom.s})` : ''; }
+function resetZoom(){ zoom = { s:1, x:0, y:0 }; pan = null; if (vEl){ vEl.classList.remove('panning'); applyZoom(); } }
+function clampPan(){
+  const r = fitRect(media[vIndex].aspect), mx = (zoom.s - 1) * r.width / 2, my = (zoom.s - 1) * r.height / 2;
+  zoom.x = clamp(zoom.x, -mx, mx); zoom.y = clamp(zoom.y, -my, my);
+}
+function zoomAt(px, py, s){            /* zoom keeping the point under the finger / cursor in place */
+  if (!vEl || !viewerOpen) return;
+  if (s <= 1.02){ resetZoom(); return; }
+  const r = fitRect(media[vIndex].aspect), ox = px - (r.left + r.width/2), oy = py - (r.top + r.height/2), k = s / zoom.s;
+  zoom.x = ox - (ox - zoom.x) * k; zoom.y = oy - (oy - zoom.y) * k; zoom.s = s; clampPan(); applyZoom();
+}
+viewer.addEventListener('pointerdown', e => {
+  if (e.target.closest('.btn')){ sw = null; return; }
+  sw = { x:e.clientX, y:e.clientY };
+  if (zoom.s > 1 && vEl) pan = { x:e.clientX, y:e.clientY, zx:zoom.x, zy:zoom.y, cap:false };
+});
+viewer.addEventListener('pointermove', e => {
+  if (!pan || zoom.s <= 1) return;
+  if (!pan.cap && Math.hypot(e.clientX - pan.x, e.clientY - pan.y) > 6){ pan.cap = true; vEl.classList.add('panning'); try { viewer.setPointerCapture(e.pointerId); } catch(_){} }
+  if (pan.cap){ zoom.x = pan.zx + e.clientX - pan.x; zoom.y = pan.zy + e.clientY - pan.y; clampPan(); applyZoom(); }
+});
 viewer.addEventListener('pointerup', e => {
-  if (!sw || !viewerOpen){ sw = null; return; }
-  const dx = e.clientX - sw.x, dy = e.clientY - sw.y; sw = null;
+  if (!sw || !viewerOpen){ sw = null; pan = null; return; }
+  const dx = e.clientX - sw.x, dy = e.clientY - sw.y, moved = Math.hypot(dx, dy); sw = null;
+  const wasPan = pan; pan = null; if (vEl) vEl.classList.remove('panning');
+  if (wasPan && wasPan.cap) swipedAt = performance.now();          /* a drag-pan must not count as a background click */
+  if (moved < 10 && vEl && (e.target === vEl || wasPan)){            /* tap on the photo: double-tap toggles zoom */
+    const now = performance.now();
+    if (now - lastTap.t < 320 && Math.hypot(e.clientX - lastTap.x, e.clientY - lastTap.y) < 40){
+      lastTap.t = 0; swipedAt = now;
+      if (zoom.s > 1) resetZoom(); else zoomAt(e.clientX, e.clientY, 2.6);
+    } else lastTap = { t:now, x:e.clientX, y:e.clientY };
+    return;
+  }
+  if (zoom.s > 1) return;                                            /* zoomed in: dragging pans, it does not swipe */
   if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.4){ swipedAt = performance.now(); navigate(dx < 0 ? 1 : -1); }   /* swipe left / right */
   else if (dy > 110 && dy > Math.abs(dx) * 1.4){ swipedAt = performance.now(); closeViewer(); }                           /* swipe down to close */
 });
-viewer.addEventListener('pointercancel', () => { sw = null; });
+viewer.addEventListener('pointercancel', () => { sw = null; pan = null; if (vEl) vEl.classList.remove('panning'); });
+viewer.addEventListener('wheel', e => {
+  if (!viewerOpen) return; e.preventDefault();
+  zoomAt(e.clientX, e.clientY, clamp(zoom.s * (e.deltaY < 0 ? 1.2 : 1/1.2), 1, 5));
+}, { passive:false });
 viewer.addEventListener('click', e => { if (e.target === viewer && performance.now() - swipedAt > 350) closeViewer(); });
 addEventListener('keydown', e => {
   if (viewerOpen){
@@ -819,6 +958,152 @@ addEventListener('keydown', e => {
     if (e.key === 'ArrowDown') camYTarget = clamp(camYTarget - 1.5, -yRange - 1, yRange + 1);
   }
 });
+
+
+/* =====================================================================
+   EXTRAS: auto tour · ambient music · favourites · on this day · year marker · colour match
+   ===================================================================== */
+const yearTag = $('#yearTag'), toastEl = $('#toast'), favBtn = $('#fav');
+let yearShown = '', toastT = 0;
+function toast(msg, ms){ toastEl.textContent = msg; toastEl.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('on'), ms || 3200); }
+
+/* ---- favourites (kept on this device) ---- */
+let favs = new Set(), favOnly = false;
+try { favs = new Set(JSON.parse(localStorage.getItem('orbit-favs') || '[]')); } catch (_) {}
+function saveFavs(){ try { localStorage.setItem('orbit-favs', JSON.stringify([...favs])); } catch (_) {} }
+favBtn.addEventListener('click', () => {
+  if (!viewerOpen) return;
+  const id = media[vIndex].id;
+  if (favs.has(id)) favs.delete(id); else favs.add(id);
+  saveFavs(); favBtn.classList.toggle('on', favs.has(id));
+});
+$('#bFav').addEventListener('click', e => {
+  if (!favOnly && !favs.size){ toast('Open a photo and tap the ♥ to add favourites'); return; }
+  favOnly = !favOnly; e.currentTarget.classList.toggle('active', favOnly);
+  toast(favOnly ? `Showing ${favs.size} favourite${favs.size === 1 ? '' : 's'}` : 'Showing everything');
+  if (favOnly && tourOn) { tourIdx = -1; tourStep(); }
+});
+
+/* ---- ambient music (generated in the browser; or set CONFIG.MUSIC_URL) ---- */
+const Music = (() => {
+  let ctx = null, master = null, bus = null, on = true, looping = false, timer = 0, audioEl = null, duck = 1;
+  try { on = localStorage.getItem('orbit-music') !== 'off'; } catch (_) {}
+  const SCALE = [261.63, 293.66, 329.63, 392.00, 440.00, 523.25, 587.33, 659.25];
+  function ensure(){
+    if (CONFIG.MUSIC_URL){ if (!audioEl){ audioEl = new Audio(CONFIG.MUSIC_URL); audioEl.loop = true; audioEl.volume = 0; } return; }
+    if (ctx) return;
+    const AC = window.AudioContext || window.webkitAudioContext; if (!AC) return;
+    ctx = new AC(); master = ctx.createGain(); master.gain.value = 0;
+    const lp = ctx.createBiquadFilter(); lp.type = 'lowpass'; lp.frequency.value = 1800;
+    const dly = ctx.createDelay(1.5); dly.delayTime.value = .46;
+    const fb = ctx.createGain(); fb.gain.value = .42; const wet = ctx.createGain(); wet.gain.value = .5;
+    dly.connect(fb); fb.connect(dly); dly.connect(wet); wet.connect(lp);
+    bus = ctx.createGain(); bus.connect(lp); bus.connect(dly); lp.connect(master); master.connect(ctx.destination);
+    [65.41, 98.00, 130.81].forEach((f, i) => {                      /* soft low drone */
+      const o = ctx.createOscillator(); o.type = 'sine'; o.frequency.value = f; o.detune.value = (i - 1) * 4;
+      const g = ctx.createGain(); g.gain.value = .05; o.connect(g); g.connect(bus); o.start();
+    });
+  }
+  function note(){
+    if (!ctx || ctx.state !== 'running') return;
+    const f = SCALE[(Math.random() * SCALE.length) | 0] * (Math.random() < .25 ? .5 : 1), t = ctx.currentTime;
+    const o = ctx.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
+    const g = ctx.createGain(); g.gain.setValueAtTime(0, t); g.gain.linearRampToValueAtTime(.09, t + .06); g.gain.exponentialRampToValueAtTime(.0005, t + 3.2);
+    o.connect(g); g.connect(bus); o.start(t); o.stop(t + 3.4);
+  }
+  function loop(){ clearTimeout(timer); note(); timer = setTimeout(loop, 1800 + Math.random() * 2600); }
+  function level(){
+    const v = on ? .5 * duck : 0;
+    if (master && ctx){ const t = ctx.currentTime; master.gain.cancelScheduledValues(t); master.gain.setValueAtTime(master.gain.value, t); master.gain.linearRampToValueAtTime(v, t + 1.2); }
+    if (audioEl) audioEl.volume = clamp(v, 0, 1);
+  }
+  function ui(){ $('#bMusic').classList.toggle('active', on); $('#musicIcon').innerHTML = on
+    ? '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/>'
+    : '<path d="M9 18V5l11-2v13"/><circle cx="6" cy="18" r="3"/><circle cx="17" cy="16" r="3"/><path d="M3 3l18 18"/>'; }
+  function start(){                                                 /* must be called from a tap / click */
+    ensure();
+    if (ctx && ctx.state === 'suspended') ctx.resume();
+    if (audioEl && on) audioEl.play().catch(() => {});
+    if (ctx && !looping){ looping = true; loop(); }
+    level(); ui();
+  }
+  function toggle(){ on = !on; try { localStorage.setItem('orbit-music', on ? 'on' : 'off'); } catch (_) {} if (on) start(); else { level(); ui(); } return on; }
+  function setDuck(d){ duck = d; level(); }
+  function suspend(h){
+    if (ctx){ if (h) ctx.suspend(); else if (on) ctx.resume(); }
+    if (audioEl){ if (h) audioEl.pause(); else if (on) audioEl.play().catch(() => {}); }
+  }
+  ui();
+  return { start, toggle, setDuck, suspend, get on(){ return on; } };
+})();
+$('#bMusic').addEventListener('click', () => { Music.toggle(); toast(Music.on ? 'Music on' : 'Music off', 1600); });
+addEventListener('visibilitychange', () => Music.suspend(document.hidden));
+
+/* ---- fly the camera to an item, and the auto tour built on it ---- */
+let flyItem = null, flyUntil = 0, tourOn = false, tourMesh = null, tourTimer = 0, tourIdx = -1;
+const wrapPi = a => a - Math.PI * 2 * Math.floor((a + Math.PI) / (Math.PI * 2));
+function flyTo(it, ms){ flyItem = it; flyUntil = performance.now() + (ms || 2600); idle = 0; camYV = 0; }
+function tourUI(){
+  $('#bTour').classList.toggle('active', tourOn);
+  $('#bTour').setAttribute('aria-label', tourOn ? 'Stop auto tour' : 'Start auto tour');
+  $('#tourIcon').innerHTML = tourOn ? '<path d="M8 5v14M16 5v14"/>' : '<path d="M7 5l12 7-12 7z"/>';
+}
+function tourStep(){
+  clearTimeout(tourTimer);
+  if (!tourOn) return;
+  const list = media.filter(i => !favOnly || favs.has(i.id));
+  if (!list.length){ stopTour(); return; }
+  tourIdx = (tourIdx + 1) % list.length;
+  const it = list[tourIdx]; tourMesh = it.mesh; flyTo(it, 3000);
+  tourTimer = setTimeout(tourStep, it.type === 'video' ? 6500 : 4200);
+}
+function startTour(){
+  if (!entered || viewerOpen) return;
+  const list = media.filter(i => !favOnly || favs.has(i.id));
+  if (!list.length) return;
+  let best = 0, bd = 1e9;                                           /* begin with whatever is closest to where you are looking */
+  list.forEach((it, i) => { const m = it.mesh; if (!m.visible) return; tmpV.setFromMatrixPosition(m.matrixWorld).project(camera); if (tmpV.z >= 1) return; const d = tmpV.x*tmpV.x + tmpV.y*tmpV.y; if (d < bd){ bd = d; best = i; } });
+  tourIdx = best - 1; tourOn = true; tourUI(); hideHint(); tourStep();
+}
+function stopTour(){ if (!tourOn && !tourMesh) return; tourOn = false; tourMesh = null; clearTimeout(tourTimer); tourUI(); }
+$('#bTour').addEventListener('click', () => { if (tourOn){ stopTour(); toast('Tour stopped', 1400); } else { startTour(); toast('Auto tour · touch anywhere to stop', 2600); } });
+canvas.addEventListener('pointerdown', () => { flyItem = null; stopTour(); });
+canvas.addEventListener('wheel', () => { flyItem = null; stopTour(); }, { passive:true });
+rail.addEventListener('pointerdown', () => { flyItem = null; stopTour(); });
+addEventListener('keydown', e => { if (!viewerOpen && e.key.indexOf('Arrow') === 0){ flyItem = null; stopTour(); } });
+
+/* ---- on this day ---- */
+let otdOn = true, otdCount = 0, otdPos = -1;
+function markOtd(){
+  const n = new Date(); let c = 0;
+  media.forEach(it => {
+    if (!it.ts) return; const d = new Date(it.ts);
+    if (d.getMonth() === n.getMonth() && d.getDate() === n.getDate() && d.getFullYear() < n.getFullYear()){ it.otd = true; c++; }
+  });
+  $('#bOtd').hidden = !c; return c;
+}
+function otdAnnounce(){ if (otdCount) toast(`On this day · ${otdCount} memor${otdCount === 1 ? 'y' : 'ies'} glowing ✦`, 4200); }
+$('#bOtd').addEventListener('click', () => {
+  const list = media.filter(i => i.otd); if (!list.length) return;
+  stopTour(); otdPos = (otdPos + 1) % list.length; flyTo(list[otdPos], 3200);
+  const y = new Date(list[otdPos].ts).getFullYear(); toast(`On this day, ${y}`, 2600);
+});
+
+/* ---- colours of the photos in front of you tint the glow, hearts and backdrop ---- */
+const tintCur = [140, 80, 170]; let tintTarget = [140, 80, 170], tintAcc = 0;
+function updateTint(){
+  if (LITE || !entered || viewerOpen) return;
+  let r = 0, g = 0, b = 0, w = 0;
+  for (const m of meshes){
+    const a = m.userData.avg; if (!a || !m.visible || m.userData.item.type === 'quote') continue;
+    tmpV.setFromMatrixPosition(m.matrixWorld).project(camera); if (tmpV.z >= 1) continue;
+    const d = tmpV.x*tmpV.x + tmpV.y*tmpV.y; if (d > 1.4) continue;
+    const wt = 1 / (.15 + d); r += a[0]*wt; g += a[1]*wt; b += a[2]*wt; w += wt;
+  }
+  if (w > 0){ r /= w; g /= w; b /= w; const k = 210 / (Math.max(r, g, b) || 1); tintTarget = [clamp(r*k, 40, 255), clamp(g*k, 40, 255), clamp(b*k, 40, 255)]; }
+}
+setInterval(updateTint, 450);
+const isLit = m => hovered === m || centerSet.has(m) || tourMesh === m;
 
 /* ---------------- main loop ---------------- */
 const clock = new THREE.Clock();
@@ -835,6 +1120,31 @@ function tick(){
   $('#compass').firstChild.style.transform = 'rotate(' + yaw + 'rad)';
   sky.material.uniforms.uT.value = t;
 
+  // camera fly-to (tour / on this day) – follows the item while its ring turns
+  if (flyItem && !drag && !viewerOpen){
+    const diff = wrapPi(-(flyItem.a0 + flyItem.ring.spin) - yaw);
+    yaw += diff * Math.min(1, dt * 3.2); yawV = 0; pitch += (0 - pitch) * Math.min(1, dt * 3); pitchV = 0;
+    camYTarget = clamp(flyItem.ring.y, -yRange - 1, yRange + 1); idle = 0;
+    if (performance.now() > flyUntil) flyItem = null;
+  }
+  if (tourOn) idle = 0;
+  // year marker for the ring you are on
+  if (entered && !viewerOpen && chronoMode && rings.length){
+    let best = null, bd = 1e9;
+    for (const r of rings){ const d = Math.abs(r.y - camY); if (d < bd){ bd = d; best = r; } }
+    if (best && best.label && best.label !== yearShown){ yearShown = best.label; yearTag.textContent = yearShown; yearTag.classList.add('on'); }
+  }
+  // colour match
+  if (!LITE && entered){
+    for (let i = 0; i < 3; i++) tintCur[i] += (tintTarget[i] - tintCur[i]) * Math.min(1, dt * 1.2);
+    tintAcc += dt;
+    if (tintAcc > .3){
+      tintAcc = 0;
+      document.documentElement.style.setProperty('--tint', `${tintCur[0]|0},${tintCur[1]|0},${tintCur[2]|0}`);
+      hearts.material.color.setRGB(.5 + tintCur[0]/510, .5*.62 + tintCur[1]/510, .5*.76 + tintCur[2]/510);
+    }
+  }
+
   // intro orb
   const orbOn = clamp(1 - enterT / 1.6, 0, 1);
   orb.position.set(ps.x * 5, ps.y * 3, -7); orb.scale.setScalar((5 + Math.sin(t*1.5)*.5) * (1 + (1-orbOn)*3)); orb.material.opacity = orbOn;
@@ -846,7 +1156,8 @@ function tick(){
   meshes.forEach(m => {
     const u = m.userData, it = u.item, ring = it.ring;
     const ap = ease(clamp((enterT - u.delay) / 2.4, 0, 1));
-    u.hover += (((hovered === m || centerSet.has(m)) ? 1 : 0) - u.hover) * Math.min(1, dt * 9);
+    const tgt = isLit(m) ? 1 : (otdOn && it.otd ? .55 + .35 * Math.sin(t * 2.2 + u.phase) : 0);
+    u.hover += (tgt - u.hover) * Math.min(1, dt * 9);
     if (ap <= 0.001){ m.visible = false; return; }
     m.visible = true;
     const ang = it.a0 + ring.spin + (1 - ap) * 3.2 * ring.dir;
@@ -857,7 +1168,10 @@ function tick(){
     const s = (1 + u.hover * .3) * ap;
     m.scale.set(it.w * s, H * s, 1);
     u.fade = Math.min(1, (u.fade || 0) + (u.loaded ? dt * 1.6 : 0));
-    m.material.opacity = u.hide ? 0 : ap * u.fade * (0.78 + 0.22 * u.hover + .0);
+    const outF = favOnly && !(it.type !== 'quote' && favs.has(it.id));
+    u.show += ((outF ? 0 : 1) - u.show) * Math.min(1, dt * 4);
+    m.material.opacity = (u.hide ? 0 : ap * u.fade * (0.78 + 0.22 * u.hover)) * u.show;
+    if (u.show < .02) m.visible = false;
     const gu = u.glow.material.uniforms; gu.uHover.value = u.hover; gu.uOp.value = m.material.opacity; gu.uPos.value += dt * (.05 + u.hover * .7);
   });
 
@@ -963,6 +1277,7 @@ $('#enter').addEventListener('click', () => {
   /* Start muted scene videos directly from this user gesture for stricter autoplay policies. */
   requestAnimationFrame(() => updateVideos());
   setTimeout(showHint, 3200); $('#rail').classList.add('on'); $('#compass').classList.add('on');
+  $('#dock').classList.add('on'); Music.start(); setTimeout(otdAnnounce, 3800);
 });
 let rz = 0;
 addEventListener('resize', () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(resize); });
@@ -974,6 +1289,7 @@ addEventListener('visibilitychange', () => {
 
 (async function init(){
   resize(); tick();
+  if ('serviceWorker' in navigator && /^https?:$/.test(location.protocol)) navigator.serviceWorker.register('sw.js').catch(() => {});
   const iq = $('#iq'); let qi = 0;
   (function cyc(){ iq.classList.remove('on'); setTimeout(() => { iq.textContent = '“' + QUOTES[qi++ % QUOTES.length] + '”'; iq.classList.add('on'); }, 700); setTimeout(cyc, 5200); })();
   await unlocked;   /* nothing is loaded from Drive until the gate is opened */
@@ -994,7 +1310,14 @@ addEventListener('visibilitychange', () => {
   }
   if (!list.length) list = demoItems();
   try { await Promise.race([document.fonts.load('italic 300 56px "Cormorant Garamond"'), new Promise(r => setTimeout(r, 2500))]); } catch(e){}
-  buildGallery(withQuotes(list));
+  const dated = list.filter(i => i.ts);
+  if (!demo && dated.length >= list.length * .5){
+    const lo = Math.min(...dated.map(i => i.ts)), hi = Math.max(...dated.map(i => i.ts));
+    chronoMode = hi - lo > 30 * 86400000;                        /* only worth it if the photos really span time */
+  }
+  if (chronoMode) list.sort((a, b) => (a.ts || 8.64e15) - (b.ts || 8.64e15));
+  buildGallery(withQuotes(list, chronoMode));
+  otdCount = markOtd();
   ready = true;
   const b = $('#enter'); b.disabled = false; b.textContent = 'Enter the gallery';
 })();
