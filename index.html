@@ -29,7 +29,7 @@
   #bgBlur canvas{position:absolute;left:-8%;top:-8%;width:116%;height:116%;opacity:0;transition:opacity 2.8s ease-in-out;
     filter:blur(10px) saturate(1.35) brightness(.62);will-change:opacity;transform:translateZ(0);image-rendering:auto}
   #bgBlur canvas.on{opacity:1}
-  @media (pointer:coarse){#bgBlur canvas{filter:blur(8px) saturate(1.3) brightness(.62)}}
+  @media (pointer:coarse){#bgBlur canvas{filter:blur(10px) saturate(1.3) brightness(.62)}}
   #scene{position:fixed;inset:0;width:100%;height:100%;display:block;touch-action:none;outline:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}
 
   /* ---------- intro ---------- */
@@ -183,6 +183,50 @@
   #toast{top:calc(max(16px,env(safe-area-inset-top)) + 52px);font-size:.85rem;font-weight:300}
   #toast.on{opacity:1}
   #fav{top:max(18px,env(safe-area-inset-top));left:18px}
+  #toast{z-index:30}
+  #hint{bottom:calc(max(14px,env(safe-area-inset-bottom)) + 58px)}
+
+  /* ---------- loading progress ---------- */
+  #loadWrap{margin:1.2rem auto 0;width:min(260px,70vw);opacity:0;transition:opacity .6s}
+  #loadWrap.on{opacity:1}
+  #loadBar{height:3px;border-radius:99px;background:rgba(255,255,255,.12);overflow:hidden}
+  #loadBar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--rose),var(--ice));transition:width .4s}
+  #loadTxt{margin-top:.5rem;font-size:.78rem;color:var(--muted);font-weight:300}
+  #loadLine{position:fixed;top:0;left:0;height:2px;width:0;z-index:40;background:linear-gradient(90deg,var(--rose),var(--ice));transition:width .4s,opacity .9s;pointer-events:none;opacity:0}
+  #loadLine.on{opacity:1}
+
+  /* ---------- viewer: photo note + photo strip ---------- */
+  #note{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(max(16px,env(safe-area-inset-bottom)) + 112px);z-index:3;max-width:min(560px,86vw);text-align:center;
+    font:italic 300 1.1rem/1.4 'Cormorant Garamond',Georgia,serif;color:var(--ink);opacity:0;transition:opacity .5s .4s;pointer-events:none;text-shadow:0 2px 14px rgba(0,0,0,.7)}
+  #viewer.open #note.has{opacity:.95}
+  #strip{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(max(16px,env(safe-area-inset-bottom)) + 40px);z-index:3;display:flex;gap:8px;
+    max-width:min(640px,calc(100vw - 150px));overflow-x:auto;overflow-y:hidden;padding:4px;scrollbar-width:none;opacity:0;pointer-events:none;transition:opacity .5s .4s;touch-action:none;border-radius:14px}
+  #strip::-webkit-scrollbar{display:none}
+  #viewer.open #strip.show{opacity:1;pointer-events:auto}
+  #strip img{flex:0 0 auto;width:44px;height:44px;object-fit:cover;border-radius:8px;opacity:.55;border:2px solid transparent;cursor:pointer;transition:opacity .25s,transform .25s;-webkit-user-drag:none;user-select:none}
+  #strip img.cur{opacity:1;border-color:var(--rose);transform:scale(1.06)}
+  @media (min-width:701px){ #strip{max-width:min(720px,calc(100vw - 260px))} }
+
+  /* ---------- filter panel ---------- */
+  #filterPanel{position:fixed;left:14px;bottom:calc(max(14px,env(safe-area-inset-bottom)) + 58px);z-index:7;width:min(340px,calc(100vw - 28px));max-height:55vh;overflow:auto;
+    padding:.9rem 1rem .3rem;border-radius:20px;background:linear-gradient(135deg,rgba(40,24,60,.84),rgba(20,12,34,.88));border:1px solid rgba(255,255,255,.18);
+    backdrop-filter:blur(18px);-webkit-backdrop-filter:blur(18px);color:var(--ink);opacity:0;visibility:hidden;transform:translateY(8px);transition:opacity .25s,transform .25s,visibility 0s .25s}
+  #filterPanel.on{opacity:1;visibility:visible;transform:none;transition-delay:0s}
+  .fgrp{display:flex;flex-wrap:wrap;gap:6px;align-items:center;margin-bottom:.8rem}
+  .fgrp>span{width:100%;font-size:.68rem;letter-spacing:.14em;text-transform:uppercase;color:var(--muted)}
+  .chip{padding:.35rem .8rem;border-radius:999px;border:1px solid rgba(255,255,255,.2);background:rgba(255,255,255,.07);color:#fff;font:400 .8rem Inter,sans-serif;cursor:pointer}
+  .chip.on{background:rgba(255,159,194,.3);border-color:var(--rose)}
+  .chip.clear{margin-left:auto;background:none;color:var(--muted)}
+
+  /* ---------- first-visit swipe hint ---------- */
+  #swipeHint{position:fixed;left:50%;top:58%;transform:translate(-50%,-50%);z-index:6;text-align:center;opacity:0;transition:opacity .6s;pointer-events:none;color:var(--ink);font-size:.85rem;font-weight:300;text-shadow:0 2px 12px rgba(0,0,0,.7)}
+  #swipeHint.on{opacity:1}
+  .sh-stage{position:relative;width:150px;height:110px;margin:0 auto .4rem}
+  .sh-dot{position:absolute;left:50%;top:50%;width:28px;height:28px;margin:-14px 0 0 -14px;border-radius:50%;background:rgba(255,255,255,.55);border:2px solid rgba(255,255,255,.9);
+    box-shadow:0 0 24px rgba(255,159,194,.7);animation:shMove 3s ease-in-out infinite;opacity:0}
+  @keyframes shMove{0%{transform:translate(-50px,0);opacity:0}10%{opacity:1}35%{transform:translate(50px,0)}45%{transform:translate(0,0)}58%{transform:translate(0,-38px)}82%{transform:translate(0,38px)}92%{opacity:1}100%{transform:translate(0,0);opacity:0}}
+  @media (prefers-reduced-motion:reduce){ .sh-dot{animation:none;opacity:.8} }
+  html.q1 #bgBlur::after,html.q2 #bgBlur::after{display:none}
   #fav.on svg{fill:var(--rose);stroke:var(--rose)}
 </style>
 </head>
@@ -213,6 +257,7 @@
     <p class="sub">Step inside a 360° world of our photos, videos and the days that matter.</p>
     <p id="iq"></p>
     <button id="enter" disabled>Gathering memories…</button>
+    <div id="loadWrap"><div id="loadBar"><i></i></div><p id="loadTxt"></p></div>
   </div>
 </div>
 
@@ -221,10 +266,15 @@
 <div id="status"></div>
 <div id="compass"><i></i>360°</div>
 <div class="rail" id="rail"><div id="thumb"></div></div>
+<div id="loadLine"></div>
 <div id="yearTag" aria-live="polite"></div>
+<div id="swipeHint" aria-hidden="true"><div class="sh-stage"><i class="sh-dot"></i></div><p>Swipe or drag to look around<br>up and down to travel through time</p></div>
+<div id="filterPanel" role="dialog" aria-label="Filter"></div>
 <div id="toast" role="status" aria-live="polite"></div>
 <div id="dock">
   <button class="dbtn" id="bTour" type="button" aria-label="Start auto tour" title="Auto tour"><svg viewBox="0 0 24 24" id="tourIcon"><path d="M7 5l12 7-12 7z"/></svg></button>
+  <button class="dbtn" id="bFilter" type="button" aria-label="Filter" title="Filter"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg></button>
+  <button class="dbtn" id="bSurprise" type="button" aria-label="Surprise me" title="Surprise me"><svg viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></button>
   <button class="dbtn" id="bFav" type="button" aria-label="Show favourites only" title="Favourites only"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.6-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.4-7 10-7 10z"/></svg></button>
   <button class="dbtn" id="bOtd" type="button" aria-label="On this day" title="On this day" hidden><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></button>
 </div>
@@ -235,6 +285,8 @@
   <button class="btn" id="sound" aria-label="Turn sound on"><svg viewBox="0 0 24 24" id="soundIcon"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l4 6M21 9l-4 6"/></svg></button>
   <button class="btn" id="prev" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
   <button class="btn" id="next" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
+  <div id="note"></div>
+  <div id="strip" aria-label="Photo strip"></div>
   <div id="caption"></div>
 </div>
 
@@ -250,7 +302,10 @@ const CONFIG = {
   DRIVE_FOLDER: 'https://drive.google.com/drive/folders/1ou4fY6-H_B1ZtIYZX8edwMOQVoAhDV94?usp=drive_link',          // folder ID or the full folder link
   GOOGLE_API_KEY: 'AIzaSyBogI6YLzo4QaVJ9rhc2lrtrSHiMGPDJBQ',        // API key with Google Drive API enabled
   INCLUDE_SUBFOLDERS: true,
-  MAX_ACTIVE_VIDEOS: 999,      // how many videos play at once in the 3D scene
+  NOTES_FILE: 'notes.txt',    // optional plain-text file inside your Drive folder, one line per photo:   IMG_1234.jpg = Our first trip
+  NOTES: {                    // or write notes right here instead, e.g.   'IMG_1234.jpg': 'Our first trip',
+  },
+  MAX_ACTIVE_VIDEOS: 10,      // how many videos play at once in the 3D scene
   RING_RADIUS: 7,
   ITEM_HEIGHT: 2.6
 };
@@ -440,13 +495,14 @@ function folderId(v){
   const m = v.match(/folders\/([\w-]+)/) || v.match(/[?&]id=([\w-]+)/);
   return m ? m[1] : v.trim();
 }
+let notesFileId = '';
 async function listFolder(id, depth = 0){
   const out = []; let token = '';
   do {
     const params = new URLSearchParams({
-      q: `'${id}' in parents and trashed=false and (mimeType contains 'image/' or mimeType contains 'video/' or mimeType='application/vnd.google-apps.folder')`,
+      q: `'${id}' in parents and trashed=false and (mimeType contains 'image/' or mimeType contains 'video/' or mimeType='application/vnd.google-apps.folder' or name='${CONFIG.NOTES_FILE}')`,
       key: CONFIG.GOOGLE_API_KEY, pageSize: '1000', orderBy: 'name',
-      fields: 'nextPageToken,files(id,name,mimeType,createdTime,modifiedTime,thumbnailLink,imageMediaMetadata(width,height,rotation,time),videoMediaMetadata(width,height))'
+      fields: 'nextPageToken,files(id,name,description,mimeType,createdTime,modifiedTime,thumbnailLink,imageMediaMetadata(width,height,rotation,time),videoMediaMetadata(width,height))'
     });
     if (token) params.set('pageToken', token);
     const res = await fetch('https://www.googleapis.com/drive/v3/files?' + params);
@@ -460,6 +516,8 @@ async function listFolder(id, depth = 0){
         if (CONFIG.INCLUDE_SUBFOLDERS && depth < 3) out.push(...await listFolder(f.id, depth + 1));
         continue;
       }
+      if (CONFIG.NOTES_FILE && f.name.toLowerCase() === CONFIG.NOTES_FILE.toLowerCase()){ if (!notesFileId) notesFileId = f.id; continue; }
+      if (!/^(image|video)\//.test(f.mimeType)) continue;
       const isVideo = f.mimeType.startsWith('video/');
       const meta = isVideo ? f.videoMediaMetadata : f.imageMediaMetadata;
       let w = meta && meta.width, h = meta && meta.height;
@@ -467,7 +525,7 @@ async function listFolder(id, depth = 0){
       const base = f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+$/, '') : null;
       const wd = whenDate(f, meta);
       out.push({
-        ts: wd ? wd.getTime() : 0, thumbSmall: base ? base + '=w160' : null,
+        fileName: f.name, note: (f.description || '').trim().slice(0, 240), ts: wd ? wd.getTime() : 0, thumbSmall: base ? base + '=w160' : null,
         id:f.id, name: fmtWhen(f, meta) || f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g,' '), type:isVideo?'video':'image',
         aspect: w && h ? w/h : 1.5, aspectKnown: !!(w && h),
         thumb: base ? base + '=w800' : `https://drive.google.com/thumbnail?id=${f.id}&sz=w800`,
@@ -478,6 +536,29 @@ async function listFolder(id, depth = 0){
     }
   } while (token);
   return out;
+}
+
+/* notes: from notes.txt in the Drive folder and/or CONFIG.NOTES (these win over the Drive "description" field) */
+const noteKey = n => String(n).trim().toLowerCase();
+async function applyNotes(list){
+  const map = new Map();
+  Object.entries(CONFIG.NOTES || {}).forEach(([k, v]) => map.set(noteKey(k), String(v).trim()));
+  if (notesFileId){
+    try {
+      const r = await fetch(`https://www.googleapis.com/drive/v3/files/${notesFileId}?alt=media&key=${CONFIG.GOOGLE_API_KEY}`);
+      if (r.ok){
+        (await r.text()).replace(/^\uFEFF/, '').split(/\r?\n/).forEach(line => {
+          line = line.trim(); if (!line || line[0] === '#') return;
+          const m = /^(.+?)\s*(?:=|\||:)\s*(.+)$/.exec(line); if (m) map.set(noteKey(m[1]), m[2].trim());
+        });
+      }
+    } catch (_) {}
+  }
+  if (!map.size) return;
+  list.forEach(it => {
+    const fn = noteKey(it.fileName || ''), n = map.get(fn) || map.get(fn.replace(/\.[^.]+$/, ''));
+    if (n) it.note = n.slice(0, 240);
+  });
 }
 
 /* when was it taken (EXIF) or, failing that, added to Drive */
@@ -563,13 +644,14 @@ function buildGallery(list){
 }
 
 /* thumbnail loading with a small concurrency queue */
-const queue = []; let activeLoads = 0, doneLoads = 0;
+const queue = []; let activeLoads = 0, doneLoads = 0, readyCount = 0;
 function enqueue(m){ queue.push(m); pump(); }
 function pump(){
   while (activeLoads < 6 && queue.length){
     activeLoads++;
-    loadThumb(queue.shift()).then(() => {
-      activeLoads--; doneLoads++;
+    const qm = queue.shift();
+    loadThumb(qm).then(() => {
+      activeLoads--; doneLoads++; if (qm.userData.item.type !== 'quote') readyCount++; updateProgress();
       if (!entered && ready) $('#status').textContent = '';
       pump();
     });
@@ -658,7 +740,7 @@ function updateVideos(){
     if (tmpV.z < 1 && Math.abs(tmpV.x) < 1.2 && Math.abs(tmpV.y) < 1.2) cand.push({ m, d:tmpV.x*tmpV.x + tmpV.y*tmpV.y });
   });
   cand.sort((a,b) => a.d - b.d);
-  const maxVids = LITE ? 2 : isTouch ? Math.min(4, CONFIG.MAX_ACTIVE_VIDEOS) : CONFIG.MAX_ACTIVE_VIDEOS;
+  const maxVids = (LITE || quality >= 1) ? 2 : isTouch ? Math.min(4, CONFIG.MAX_ACTIVE_VIDEOS) : CONFIG.MAX_ACTIVE_VIDEOS;
   const want = new Set(cand.slice(0, maxVids).map(o => o.m));
   if (hovered && hovered.userData.item.type === 'video') want.add(hovered);
   centerSet.forEach(m => { if (m.userData.item.type === 'video') want.add(m); });
@@ -785,9 +867,10 @@ rail.addEventListener('pointermove', e => { if (railDrag) railTo(e); });
 ['pointerup','pointercancel'].forEach(t => rail.addEventListener(t, () => { railDrag = false; }));
 
 /* ---------------- full screen viewer ---------------- */
-const viewer = $('#viewer'), caption = $('#caption'), soundBtn = $('#sound');
+const viewer = $('#viewer'), caption = $('#caption'), soundBtn = $('#sound'), strip = $('#strip'), noteEl = $('#note');
+let notePad = 0;
 function fitRect(aspect){
-  const small = innerWidth < 700, padX = small ? 12 : 90, padTop = small ? 70 : 60, padBot = small ? 90 : 70;
+  const small = innerWidth < 700, padX = small ? 12 : 90, padTop = small ? 70 : 60, padBot = (small ? 130 : 120) + notePad;
   const W = innerWidth - padX*2, Hh = innerHeight - padTop - padBot;
   let w = W, h = w / aspect; if (h > Hh){ h = Hh; w = h * aspect; }
   return { left:(innerWidth - w)/2, top:padTop + (Hh - h)/2, width:w, height:h };
@@ -822,6 +905,7 @@ function makeMedia(it){
   return el;
 }
 function mount(it, startRect){
+  showNote(it);
   const el = makeMedia(it), final = fitRect(it.aspect);
   if (startRect){ setRect(el, startRect); } else { setRect(el, final); el.style.opacity = 0; }
   viewer.appendChild(el); void el.offsetWidth; vEl = el;
@@ -829,6 +913,7 @@ function mount(it, startRect){
   caption.textContent = `${media.indexOf(it) + 1} of ${media.length}`;
   zoom = { s:1, x:0, y:0 }; pan = null;
   $('#fav').classList.toggle('on', favs.has(it.id));
+  buildStrip(it);
   soundBtn.classList.toggle('show', it.type === 'video');
   setSoundUI(false);
   return el;
@@ -851,6 +936,7 @@ function openViewer(it){
   }
   viewerOpen = true; vIndex = media.indexOf(it); targetTS = 0; setHovered(null);
   stopTour(); flyItem = null; yearTag.classList.remove('on');
+  if (!viewerHintSeen){ viewerHintSeen = true; try { localStorage.setItem('orbit-viewer-hint', '1'); } catch (_) {} setTimeout(() => toast('Swipe for next · pinch or double-tap to zoom', 4200), 900); }
   const m = it.mesh; const from = meshRect(m);
   m.userData.hide = true; viewer.classList.add('open');
   mount(it, from); hideHint();
@@ -860,9 +946,33 @@ function navigate(dir){
   resetZoom();
   const old = vEl, oldItem = media[vIndex];
   let ni = vIndex;
-  for (let k = 0; k < media.length; k++){ ni = (ni + dir + media.length) % media.length; if (!favOnly || favs.has(media[ni].id)) break; }
+  for (let k = 0; k < media.length; k++){ ni = (ni + dir + media.length) % media.length; if (inScope(media[ni])) break; }
   vIndex = ni;
   const it = media[vIndex];
+  oldItem.mesh.userData.hide = false; it.mesh.userData.hide = true;
+  old.style.opacity = 0; setTimeout(() => old.remove(), 400);
+  vEl = null; vEl = mount(it, null);
+}
+function showNote(it){ notePad = it.note ? 56 : 0; noteEl.textContent = it.note || ''; noteEl.classList.toggle('has', !!it.note); }
+function buildStrip(cur){
+  const idx = [];
+  media.forEach((m, i) => { if (inScope(m) || m === cur) idx.push(i); });
+  strip.innerHTML = '';
+  if (idx.length < 2){ strip.classList.remove('show'); return; }
+  const pos = idx.indexOf(media.indexOf(cur)), from = Math.max(0, pos - 14), to = Math.min(idx.length, pos + 15);
+  for (let k = from; k < to; k++){
+    const i = idx[k], m = media[i], im = new Image();
+    im.src = m.thumbSmall || m.thumb; im.alt = ''; im.draggable = false; im.dataset.i = i; if (m === cur) im.className = 'cur';
+    strip.appendChild(im);
+  }
+  strip.classList.add('show');
+  const c = strip.querySelector('.cur'); if (c) strip.scrollLeft = c.offsetLeft - strip.clientWidth / 2 + c.offsetWidth / 2;
+}
+function jumpTo(it){
+  if (!viewerOpen || media[vIndex] === it) return;
+  resetZoom();
+  const old = vEl, oldItem = media[vIndex];
+  vIndex = media.indexOf(it);
   oldItem.mesh.userData.hide = false; it.mesh.userData.hide = true;
   old.style.opacity = 0; setTimeout(() => old.remove(), 400);
   vEl = null; vEl = mount(it, null);
@@ -911,17 +1021,39 @@ function zoomAt(px, py, s){            /* zoom keeping the point under the finge
   const r = fitRect(media[vIndex].aspect), ox = px - (r.left + r.width/2), oy = py - (r.top + r.height/2), k = s / zoom.s;
   zoom.x = ox - (ox - zoom.x) * k; zoom.y = oy - (oy - zoom.y) * k; zoom.s = s; clampPan(); applyZoom();
 }
+const ptrs = new Map(); let pinch = null;
 viewer.addEventListener('pointerdown', e => {
-  if (e.target.closest('.btn')){ sw = null; return; }
+  if (e.target.closest('.btn, #strip')){ sw = null; return; }
+  ptrs.set(e.pointerId, { x:e.clientX, y:e.clientY });
+  if (ptrs.size === 2 && vEl){                                       /* two fingers: pinch zoom */
+    const [p, q] = [...ptrs.values()];
+    pinch = { d0: Math.hypot(p.x - q.x, p.y - q.y) || 1, s0: zoom.s, cx:(p.x + q.x) / 2, cy:(p.y + q.y) / 2 };
+    sw = null; pan = null; vEl.classList.add('panning'); return;
+  }
+  if (ptrs.size > 2) return;
   sw = { x:e.clientX, y:e.clientY };
   if (zoom.s > 1 && vEl) pan = { x:e.clientX, y:e.clientY, zx:zoom.x, zy:zoom.y, cap:false };
 });
 viewer.addEventListener('pointermove', e => {
+  if (ptrs.has(e.pointerId)) ptrs.set(e.pointerId, { x:e.clientX, y:e.clientY });
+  if (pinch && ptrs.size === 2){
+    const [p, q] = [...ptrs.values()], d = Math.hypot(p.x - q.x, p.y - q.y), cx = (p.x + q.x) / 2, cy = (p.y + q.y) / 2;
+    zoomAt(cx, cy, clamp(pinch.s0 * d / pinch.d0, 1, 5));
+    if (zoom.s > 1){ zoom.x += cx - pinch.cx; zoom.y += cy - pinch.cy; clampPan(); applyZoom(); }
+    pinch.cx = cx; pinch.cy = cy; return;
+  }
   if (!pan || zoom.s <= 1) return;
   if (!pan.cap && Math.hypot(e.clientX - pan.x, e.clientY - pan.y) > 6){ pan.cap = true; vEl.classList.add('panning'); try { viewer.setPointerCapture(e.pointerId); } catch(_){} }
   if (pan.cap){ zoom.x = pan.zx + e.clientX - pan.x; zoom.y = pan.zy + e.clientY - pan.y; clampPan(); applyZoom(); }
 });
 viewer.addEventListener('pointerup', e => {
+  const wasPinch = !!pinch;
+  ptrs.delete(e.pointerId);
+  if (wasPinch){                                                     /* lifting a finger after a pinch never swipes or taps */
+    if (ptrs.size < 2) pinch = null;
+    if (ptrs.size === 0 && vEl) vEl.classList.remove('panning');
+    swipedAt = performance.now(); sw = null; pan = null; return;
+  }
   if (!sw || !viewerOpen){ sw = null; pan = null; return; }
   const dx = e.clientX - sw.x, dy = e.clientY - sw.y, moved = Math.hypot(dx, dy); sw = null;
   const wasPan = pan; pan = null; if (vEl) vEl.classList.remove('panning');
@@ -938,7 +1070,20 @@ viewer.addEventListener('pointerup', e => {
   if (Math.abs(dx) > 60 && Math.abs(dx) > Math.abs(dy) * 1.4){ swipedAt = performance.now(); navigate(dx < 0 ? 1 : -1); }   /* swipe left / right */
   else if (dy > 110 && dy > Math.abs(dx) * 1.4){ swipedAt = performance.now(); closeViewer(); }                           /* swipe down to close */
 });
-viewer.addEventListener('pointercancel', () => { sw = null; pan = null; if (vEl) vEl.classList.remove('panning'); });
+viewer.addEventListener('pointercancel', e => { ptrs.delete(e.pointerId); pinch = null; sw = null; pan = null; if (vEl) vEl.classList.remove('panning'); });
+/* photo strip: drag to scroll, tap to jump */
+let sd = null;
+strip.addEventListener('pointerdown', e => { sd = { x:e.clientX, sl:strip.scrollLeft, moved:false }; });
+strip.addEventListener('pointermove', e => {
+  if (!sd) return; const dx = e.clientX - sd.x;
+  if (!sd.moved && Math.abs(dx) > 5){ sd.moved = true; try { strip.setPointerCapture(e.pointerId); } catch(_){} }
+  if (sd.moved) strip.scrollLeft = sd.sl - dx;
+});
+strip.addEventListener('pointerup', e => {
+  const was = sd; sd = null;
+  if (was && !was.moved){ const t = e.target.closest && e.target.closest('img[data-i]'); if (t) jumpTo(media[+t.dataset.i]); }
+});
+strip.addEventListener('pointercancel', () => { sd = null; });
 viewer.addEventListener('wheel', e => {
   if (!viewerOpen) return; e.preventDefault();
   zoomAt(e.clientX, e.clientY, clamp(zoom.s * (e.deltaY < 0 ? 1.2 : 1/1.2), 1, 5));
@@ -995,7 +1140,7 @@ function tourUI(){
 function tourStep(){
   clearTimeout(tourTimer);
   if (!tourOn) return;
-  const list = media.filter(i => !favOnly || favs.has(i.id));
+  const list = media.filter(inScope);
   if (!list.length){ stopTour(); return; }
   tourIdx = (tourIdx + 1) % list.length;
   const it = list[tourIdx]; tourMesh = it.mesh; flyTo(it, 3000);
@@ -1003,7 +1148,7 @@ function tourStep(){
 }
 function startTour(){
   if (!entered || viewerOpen) return;
-  const list = media.filter(i => !favOnly || favs.has(i.id));
+  const list = media.filter(inScope);
   if (!list.length) return;
   let best = 0, bd = 1e9;                                           /* begin with whatever is closest to where you are looking */
   list.forEach((it, i) => { const m = it.mesh; if (!m.visible) return; tmpV.setFromMatrixPosition(m.matrixWorld).project(camera); if (tmpV.z >= 1) return; const d = tmpV.x*tmpV.x + tmpV.y*tmpV.y; if (d < bd){ bd = d; best = i; } });
@@ -1011,17 +1156,17 @@ function startTour(){
 }
 function stopTour(){ if (!tourOn && !tourMesh) return; tourOn = false; tourMesh = null; clearTimeout(tourTimer); tourUI(); }
 $('#bTour').addEventListener('click', () => { if (tourOn){ stopTour(); toast('Tour stopped', 1400); } else { startTour(); toast('Auto tour · touch anywhere to stop', 2600); } });
-canvas.addEventListener('pointerdown', () => { flyItem = null; stopTour(); });
-canvas.addEventListener('wheel', () => { flyItem = null; stopTour(); }, { passive:true });
-rail.addEventListener('pointerdown', () => { flyItem = null; stopTour(); });
-addEventListener('keydown', e => { if (!viewerOpen && e.key.indexOf('Arrow') === 0){ flyItem = null; stopTour(); } });
+canvas.addEventListener('pointerdown', cancelAuto);
+canvas.addEventListener('wheel', cancelAuto, { passive:true });
+rail.addEventListener('pointerdown', cancelAuto);
+addEventListener('keydown', e => { if (!viewerOpen && e.key.indexOf('Arrow') === 0) cancelAuto(); });
 
 /* ---- on this day ---- */
 let otdOn = true, otdCount = 0, otdPos = -1;
 function markOtd(){
   const n = new Date(); let c = 0;
   media.forEach(it => {
-    if (!it.ts) return; const d = new Date(it.ts);
+    if (!it.ts) return; const d = new Date(it.ts); it.y = d.getFullYear(); it.mo = d.getMonth();
     if (d.getMonth() === n.getMonth() && d.getDate() === n.getDate() && d.getFullYear() < n.getFullYear()){ it.otd = true; c++; }
   });
   $('#bOtd').hidden = !c; return c;
@@ -1036,7 +1181,7 @@ $('#bOtd').addEventListener('click', () => {
 /* ---- colours of the photos in front of you tint the glow, hearts and backdrop ---- */
 const tintCur = [140, 80, 170]; let tintTarget = [140, 80, 170], tintAcc = 0;
 function updateTint(){
-  if (LITE || !entered || viewerOpen) return;
+  if (LITE || quality >= 1 || !entered || viewerOpen) return;
   let r = 0, g = 0, b = 0, w = 0;
   for (const m of meshes){
     const a = m.userData.avg; if (!a || !m.visible || m.userData.item.type === 'quote') continue;
@@ -1047,13 +1192,130 @@ function updateTint(){
   if (w > 0){ r /= w; g /= w; b /= w; const k = 210 / (Math.max(r, g, b) || 1); tintTarget = [clamp(r*k, 40, 255), clamp(g*k, 40, 255), clamp(b*k, 40, 255)]; }
 }
 setInterval(updateTint, 450);
-const isLit = m => hovered === m || centerSet.has(m) || tourMesh === m;
+const isLit = m => hovered === m || centerSet.has(m) || tourMesh === m || litMesh === m;
+
+/* ---- filter: photos / videos / year / month ---- */
+const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+const filt = { type:'all', year:null, month:null };
+const filtActive = () => filt.type !== 'all' || filt.year !== null || filt.month !== null;
+function passFilter(it){
+  if (!filtActive()) return true;
+  if (filt.type !== 'all' && it.type !== filt.type) return false;
+  if (filt.year !== null || filt.month !== null){
+    if (!it.ts) return false;
+    if (filt.year !== null && it.y !== filt.year) return false;
+    if (filt.month !== null && it.mo !== filt.month) return false;
+  }
+  return true;
+}
+const inScope = it => it.type !== 'quote' && (!favOnly || favs.has(it.id)) && passFilter(it);
+const fPanel = $('#filterPanel'), bFilter = $('#bFilter');
+function buildFilterPanel(){
+  const years = [...new Set(media.filter(i => i.ts).map(i => i.y))].sort((a, b) => b - a);
+  const chip = (g, v, label) => `<button type="button" class="chip" data-g="${g}" data-v="${v}">${label}</button>`;
+  let h = `<div class="fgrp"><span>Show</span>${chip('type','all','All')}${chip('type','image','Photos')}${chip('type','video','Videos')}</div>`;
+  if (years.length){
+    h += `<div class="fgrp"><span>Year</span>${chip('year','','Any')}${years.map(y => chip('year', y, y)).join('')}</div>`;
+    h += `<div class="fgrp"><span>Month</span>${chip('month','','Any')}${MON.map((m, i) => chip('month', i, m)).join('')}</div>`;
+  }
+  h += `<div class="fgrp"><button type="button" class="chip clear" data-g="clear">Clear filter</button></div>`;
+  fPanel.innerHTML = h; syncChips();
+}
+function syncChips(){
+  fPanel.querySelectorAll('.chip').forEach(c => {
+    const g = c.dataset.g, v = c.dataset.v; if (g === 'clear') return;
+    const cur = g === 'type' ? filt.type : (filt[g] === null ? '' : String(filt[g]));
+    c.classList.toggle('on', v === cur);
+  });
+  bFilter.classList.toggle('active', filtActive());
+}
+fPanel.addEventListener('click', e => {
+  const c = e.target.closest('.chip'); if (!c) return;
+  const g = c.dataset.g, v = c.dataset.v;
+  if (g === 'clear'){ filt.type = 'all'; filt.year = null; filt.month = null; }
+  else if (g === 'type') filt.type = v; else filt[g] = v === '' ? null : +v;
+  syncChips();
+  const n = media.filter(inScope).length;
+  toast(!filtActive() && !favOnly ? 'Showing everything' : n ? `Showing ${n} memor${n === 1 ? 'y' : 'ies'}` : 'Nothing matches that filter', 2200);
+  if (tourOn){ tourIdx = -1; tourStep(); }
+});
+bFilter.addEventListener('click', () => fPanel.classList.toggle('on'));
+addEventListener('pointerdown', e => { if (fPanel.classList.contains('on') && !fPanel.contains(e.target) && !bFilter.contains(e.target)) fPanel.classList.remove('on'); }, true);
+
+/* ---- surprise me ---- */
+let litMesh = null, surpriseTimer = 0, lastSurprise = null;
+function cancelAuto(){ flyItem = null; clearTimeout(surpriseTimer); litMesh = null; stopTour(); }
+$('#bSurprise').addEventListener('click', () => {
+  if (!entered || viewerOpen) return;
+  const list = media.filter(inScope);
+  if (!list.length){ toast('Nothing to show with this filter'); return; }
+  cancelAuto(); fPanel.classList.remove('on');
+  let it = list[(Math.random() * list.length) | 0];
+  if (list.length > 1 && it === lastSurprise) it = list[(list.indexOf(it) + 1) % list.length];
+  lastSurprise = it; litMesh = it.mesh; flyTo(it, 3000); toast('A little surprise ✦', 2200);
+  surpriseTimer = setTimeout(() => { if (!viewerOpen && flyItem === it){ litMesh = null; openViewer(it); } }, 2600);
+});
+
+/* ---- first-visit swipe hint ---- */
+const swipeHint = $('#swipeHint'); let swipeSeen = false, swipeT = 0, viewerHintSeen = false;
+try { swipeSeen = localStorage.getItem('orbit-swipe-seen') === '1'; viewerHintSeen = localStorage.getItem('orbit-viewer-hint') === '1'; } catch (_) {}
+function showSwipeHint(){
+  if (swipeSeen || viewerOpen) return;
+  swipeSeen = true; try { localStorage.setItem('orbit-swipe-seen', '1'); } catch (_) {}
+  swipeHint.classList.add('on'); swipeT = setTimeout(hideSwipeHint, 7500);
+}
+function hideSwipeHint(){ clearTimeout(swipeT); swipeHint.classList.remove('on'); }
+canvas.addEventListener('pointerdown', hideSwipeHint);
+canvas.addEventListener('wheel', hideSwipeHint, { passive:true });
+addEventListener('keydown', hideSwipeHint);
+
+/* ---- loading progress ---- */
+const loadWrap = $('#loadWrap'), loadLine = $('#loadLine'); let lineT = 0;
+function updateProgress(){
+  const total = media.length;
+  if (!total) return;
+  const pct = clamp(readyCount / total, 0, 1), done = readyCount >= total;
+  $('#loadBar').firstChild && ($('#loadBar').querySelector('i').style.width = (pct * 100) + '%');
+  loadLine.style.width = (pct * 100) + '%';
+  $('#loadTxt').textContent = done ? 'All memories are ready ♡' : `${readyCount} of ${total} memories ready`;
+  loadWrap.classList.add('on');
+  clearTimeout(lineT);
+  if (entered && !done) loadLine.classList.add('on');
+  else if (done) lineT = setTimeout(() => loadLine.classList.remove('on'), 900);
+}
+
+/* ---- automatic quality: if the frame rate sags, quietly turn the eye-candy down; restore it when things recover ---- */
+let quality = 0, qAcc = 0, qN = 0, qLow = 0, qHigh = 0, qCool = 6, qUpLocked = false, qLastUp = 0;
+function setQuality(q){
+  quality = q;
+  document.documentElement.classList.toggle('q1', q >= 1); document.documentElement.classList.toggle('q2', q >= 2);
+  const base = Math.min(devicePixelRatio, LITE ? 1.25 : isTouch ? 1.5 : 2);
+  renderer.setPixelRatio(q >= 2 ? 1 : q === 1 ? Math.min(base, 1.15) : base);
+  resize();
+  dust.visible = q < 1; stars.visible = q < 2; hearts.visible = q < 2;
+}
+function qualityWatch(raw){
+  if (!entered || document.hidden || raw > .5) return;
+  qCool -= raw; qAcc += raw; qN++;
+  if (qAcc < 2) return;
+  const fps = qN / qAcc; qAcc = 0; qN = 0;
+  if (qCool > 0) return;
+  if (fps < 40 && quality < 2){
+    qHigh = 0;
+    if (++qLow >= 2){ if (performance.now() - qLastUp < 15000) qUpLocked = true; setQuality(quality + 1); qLow = 0; qCool = 4; }
+  } else {
+    qLow = 0;
+    if (fps > 56 && quality > 0 && !qUpLocked){ if (++qHigh >= 5){ setQuality(quality - 1); qHigh = 0; qCool = 6; qLastUp = performance.now(); } }
+    else if (fps <= 56) qHigh = 0;
+  }
+}
 
 /* ---------------- main loop ---------------- */
 const clock = new THREE.Clock();
 function tick(){
   requestAnimationFrame(tick);
-  const dt = Math.min(clock.getDelta(), .05), t = clock.elapsedTime;
+  const rawDt = clock.getDelta(), dt = Math.min(rawDt, .05), t = clock.elapsedTime;
+  qualityWatch(rawDt);
   if (entered) enterT += dt;
   timeScale += (targetTS - timeScale) * Math.min(1, dt * 4);
   spinVel *= Math.pow(.06, dt); scrollE *= Math.pow(.05, dt);
@@ -1079,7 +1341,7 @@ function tick(){
     if (best && best.label && best.label !== yearShown){ yearShown = best.label; yearTag.textContent = yearShown; yearTag.classList.add('on'); }
   }
   // colour match
-  if (!LITE && entered){
+  if (!LITE && quality < 1 && entered){
     for (let i = 0; i < 3; i++) tintCur[i] += (tintTarget[i] - tintCur[i]) * Math.min(1, dt * 1.2);
     tintAcc += dt;
     if (tintAcc > .3){
@@ -1112,7 +1374,7 @@ function tick(){
     const s = (1 + u.hover * .3) * ap;
     m.scale.set(it.w * s, H * s, 1);
     u.fade = Math.min(1, (u.fade || 0) + (u.loaded ? dt * 1.6 : 0));
-    const outF = favOnly && !(it.type !== 'quote' && favs.has(it.id));
+    const outF = (favOnly || filtActive()) && !inScope(it);
     u.show += ((outF ? 0 : 1) - u.show) * Math.min(1, dt * 4);
     m.material.opacity = (u.hide ? 0 : ap * u.fade * (0.78 + 0.22 * u.hover)) * u.show;
     if (u.show < .02) m.visible = false;
@@ -1221,7 +1483,7 @@ $('#enter').addEventListener('click', () => {
   /* Start muted scene videos directly from this user gesture for stricter autoplay policies. */
   requestAnimationFrame(() => updateVideos());
   setTimeout(showHint, 3200); $('#rail').classList.add('on'); $('#compass').classList.add('on');
-  $('#dock').classList.add('on'); setTimeout(otdAnnounce, 3800);
+  $('#dock').classList.add('on'); setTimeout(otdAnnounce, 3800); setTimeout(showSwipeHint, 1600); updateProgress();
 });
 let rz = 0;
 addEventListener('resize', () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(resize); });
@@ -1244,6 +1506,7 @@ addEventListener('visibilitychange', () => {
       setStatus('Reading your Google Drive folder…');
       list = await listFolder(folderId(CONFIG.DRIVE_FOLDER));
       if (!list.length) throw new Error('No photos or videos were found in that folder.');
+      await applyNotes(list);
       setStatus('');
     } catch (err){
       setStatus(`Couldn’t load the Drive folder: ${err.message}. Check that the folder is shared as “Anyone with the link” and the API key allows the Drive API. Showing sample images instead.`, true);
@@ -1262,6 +1525,7 @@ addEventListener('visibilitychange', () => {
   if (chronoMode) list.sort((a, b) => (a.ts || 8.64e15) - (b.ts || 8.64e15));
   buildGallery(withQuotes(list, chronoMode));
   otdCount = markOtd();
+  buildFilterPanel(); updateProgress();
   ready = true;
   const b = $('#enter'); b.disabled = false; b.textContent = 'Enter the gallery';
 })();
