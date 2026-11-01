@@ -39,7 +39,7 @@ async function cacheFirst(request, cacheName, max){
 }
 /* sharp preview sizes only; the huge viewer images are never stored */
 function isSmallPhoto(url){
-  const m = /[=&?](?:sz=)?w(\d+)/.exec(url.href); return !m || +m[1] <= 1000;
+  const m = /[=&?](?:sz=)?w(\d+)/.exec(url.href); return !m || +m[1] <= 1100;
 }
 
 self.addEventListener('fetch', event => {

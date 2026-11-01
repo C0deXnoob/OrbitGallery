@@ -175,11 +175,9 @@
   .dbtn svg{width:19px;height:19px;stroke:currentColor;fill:none;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
   .dbtn.active{background:rgba(255,159,194,.28);border-color:var(--rose);box-shadow:0 0 22px rgba(255,159,194,.35)}
   .dbtn[hidden]{display:none}
-  #toast,#yearTag{position:fixed;left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;opacity:0;transition:opacity .8s;padding:.45rem 1.2rem;border-radius:999px;
+  #toast{position:fixed;left:50%;transform:translateX(-50%);z-index:6;pointer-events:none;opacity:0;transition:opacity .8s;padding:.45rem 1.2rem;border-radius:999px;
     background:linear-gradient(135deg,rgba(255,255,255,.15),rgba(255,255,255,.04));border:1px solid rgba(255,255,255,.18);
     backdrop-filter:blur(14px);-webkit-backdrop-filter:blur(14px);color:var(--ink);white-space:nowrap;max-width:90vw;overflow:hidden;text-overflow:ellipsis}
-  #yearTag{top:max(16px,env(safe-area-inset-top));font:italic 300 1.15rem 'Cormorant Garamond',Georgia,serif;letter-spacing:.04em}
-  #yearTag.on{opacity:.88}
   #toast{top:calc(max(16px,env(safe-area-inset-top)) + 52px);font-size:.85rem;font-weight:300}
   #toast.on{opacity:1}
   #fav{top:max(18px,env(safe-area-inset-top));left:18px}
@@ -196,9 +194,6 @@
   #loadLine.on{opacity:1}
 
   /* ---------- viewer: photo note + photo strip ---------- */
-  #note{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(max(16px,env(safe-area-inset-bottom)) + 112px);z-index:3;max-width:min(560px,86vw);text-align:center;
-    font:italic 300 1.1rem/1.4 'Cormorant Garamond',Georgia,serif;color:var(--ink);opacity:0;transition:opacity .5s .4s;pointer-events:none;text-shadow:0 2px 14px rgba(0,0,0,.7)}
-  #viewer.open #note.has{opacity:.95}
   #strip{position:absolute;left:50%;transform:translateX(-50%);bottom:calc(max(16px,env(safe-area-inset-bottom)) + 40px);z-index:3;display:flex;gap:8px;
     max-width:min(640px,calc(100vw - 150px));overflow-x:auto;overflow-y:hidden;padding:4px;scrollbar-width:none;opacity:0;pointer-events:none;transition:opacity .5s .4s;touch-action:none;border-radius:14px}
   #strip::-webkit-scrollbar{display:none}
@@ -267,7 +262,6 @@
 <div id="compass"><i></i>360°</div>
 <div class="rail" id="rail"><div id="thumb"></div></div>
 <div id="loadLine"></div>
-<div id="yearTag" aria-live="polite"></div>
 <div id="swipeHint" aria-hidden="true"><div class="sh-stage"><i class="sh-dot"></i></div><p>Swipe or drag to look around<br>up and down to travel through time</p></div>
 <div id="filterPanel" role="dialog" aria-label="Filter"></div>
 <div id="toast" role="status" aria-live="polite"></div>
@@ -276,7 +270,6 @@
   <button class="dbtn" id="bFilter" type="button" aria-label="Filter" title="Filter"><svg viewBox="0 0 24 24"><path d="M3 5h18l-7 8v6l-4 2v-8z"/></svg></button>
   <button class="dbtn" id="bSurprise" type="button" aria-label="Surprise me" title="Surprise me"><svg viewBox="0 0 24 24"><path d="M16 3h5v5M4 20L21 3M21 16v5h-5M15 15l6 6M4 4l5 5"/></svg></button>
   <button class="dbtn" id="bFav" type="button" aria-label="Show favourites only" title="Favourites only"><svg viewBox="0 0 24 24"><path d="M12 20s-7-4.6-7-10a4 4 0 017-2.6A4 4 0 0119 10c0 5.4-7 10-7 10z"/></svg></button>
-  <button class="dbtn" id="bOtd" type="button" aria-label="On this day" title="On this day" hidden><svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v3M12 19v3M2 12h3M19 12h3M5 5l2 2M17 17l2 2M19 5l-2 2M7 17l-2 2"/></svg></button>
 </div>
 
 <div id="viewer" role="dialog" aria-modal="true" aria-label="Full screen viewer">
@@ -285,7 +278,6 @@
   <button class="btn" id="sound" aria-label="Turn sound on"><svg viewBox="0 0 24 24" id="soundIcon"><path d="M4 9v6h4l5 4V5L8 9H4z"/><path d="M17 9l4 6M21 9l-4 6"/></svg></button>
   <button class="btn" id="prev" aria-label="Previous"><svg viewBox="0 0 24 24"><path d="M15 5l-7 7 7 7"/></svg></button>
   <button class="btn" id="next" aria-label="Next"><svg viewBox="0 0 24 24"><path d="M9 5l7 7-7 7"/></svg></button>
-  <div id="note"></div>
   <div id="strip" aria-label="Photo strip"></div>
   <div id="caption"></div>
 </div>
@@ -302,9 +294,7 @@ const CONFIG = {
   DRIVE_FOLDER: 'https://drive.google.com/drive/folders/1ou4fY6-H_B1ZtIYZX8edwMOQVoAhDV94?usp=drive_link',          // folder ID or the full folder link
   GOOGLE_API_KEY: 'AIzaSyBogI6YLzo4QaVJ9rhc2lrtrSHiMGPDJBQ',        // API key with Google Drive API enabled
   INCLUDE_SUBFOLDERS: true,
-  NOTES_FILE: 'notes.txt',    // optional plain-text file inside your Drive folder, one line per photo:   IMG_1234.jpg = Our first trip
-  NOTES: {                    // or write notes right here instead, e.g.   'IMG_1234.jpg': 'Our first trip',
-  },
+  SHUFFLE: true,              // mix photos and videos randomly every time the page opens
   MAX_ACTIVE_VIDEOS: 10,      // how many videos play at once in the 3D scene
   RING_RADIUS: 7,
   ITEM_HEIGHT: 2.6
@@ -318,16 +308,21 @@ const ease = x => 1 - Math.pow(1 - x, 4);
 const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const SRGB = THREE.sRGBEncoding;
 const isTouch = matchMedia('(pointer: coarse)').matches;
-const ANISO = isTouch ? 2 : 4;
+let ANISO = isTouch ? 2 : 4;
+const MID_W = isTouch ? 800 : 1024;                         /* every item's everyday texture */
+const HI_W  = isTouch ? 1280 : 1920;                        /* the items you are looking at are upgraded to this */
+
 /* lite mode: older / low-memory phones get fewer particles, no CSS blur and fewer videos (force it with ?lite=1) */
 const LITE = /[?&]lite=1/.test(location.search) || (isTouch && navigator.deviceMemory && navigator.deviceMemory <= 2);
 if (LITE) document.documentElement.classList.add('lite');
+const HI_MAX = LITE ? 2 : isTouch ? 5 : 8;
 
 /* ---------------- renderer / scene ---------------- */
 const canvas = $('#scene');
 const renderer = new THREE.WebGLRenderer({ canvas, antialias:true, alpha:true, powerPreference:'high-performance' });
 renderer.setClearColor(0x000000, 0);
-renderer.setPixelRatio(Math.min(devicePixelRatio, LITE ? 1.25 : isTouch ? 1.5 : 2));
+renderer.setPixelRatio(Math.min(devicePixelRatio, LITE ? 1.25 : 2));
+ANISO = Math.min(renderer.capabilities.getMaxAnisotropy(), isTouch ? 4 : 8);
 renderer.outputEncoding = SRGB;
 const scene = new THREE.Scene();
 scene.background = null;   /* the blurred photo layer behind the canvas shows through */
@@ -422,25 +417,13 @@ function quoteCanvas(text, tint, head){
 }
 let qCount = 0;
 const DATES = [['4 March 2023','We met for the first time after our school days.'],['28 September 2023','We both confessed our feelings.'],['19 July 2025',null],['10 January 2026',null],['1 May 2026',null],['13 August 2026',null]];
-const MONTHS = ['january','february','march','april','may','june','july','august','september','october','november','december'];
-function parseHuman(str){ const m = /(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})/.exec(str); if (!m) return NaN; const mi = MONTHS.indexOf(m[2].toLowerCase()); return mi < 0 ? NaN : new Date(+m[3], mi, +m[1]).getTime(); }
-function withQuotes(list, chrono){
+function withQuotes(list){
   const out = [];
   list.forEach((it,i) => { out.push(it);
     if ((i+1) % 4 === 0){ out.push({ id:'q'+qCount, name:'', type:'quote', aspect:1.7, aspectKnown:true, canvas:quoteCanvas(QUOTES[qCount % QUOTES.length], TINTS[qCount % 3]) }); qCount++; } });
-  const card = (d, tx, i) => ({ id:'d'+i, isDate:true, name:'', type:'quote', aspect:1.7, aspectKnown:true, canvas:quoteCanvas(tx || QUOTES[(i+6) % QUOTES.length], '#f2d3a0', d) });
-  if (chrono){
-    /* timeline cards slot in where they belong in time (latest first, so same-gap cards keep their order) */
-    DATES.map(([d,tx],i) => ({ d, tx, i, ts:parseHuman(d) })).filter(o => !isNaN(o.ts)).sort((x,y) => y.ts - x.ts).forEach(o => {
-      let idx = out.length;
-      for (let k = 0; k < out.length; k++){ const x = out[k]; if (x.type !== 'quote' && x.ts && x.ts > o.ts){ idx = k; break; } }
-      while (idx > 0 && out[idx-1].isDate) idx--;               /* land before any later date card already in this gap */
-      out.splice(idx, 0, card(o.d, o.tx, o.i));
-    });
-  } else {
-    const step = Math.max(2, Math.floor(out.length / (DATES.length + 1)));
-    DATES.forEach(([d,tx],i) => out.splice(Math.min(out.length, (i+1)*step + i), 0, card(d, tx, i)));
-  }
+  const step = Math.max(2, Math.floor(out.length / (DATES.length + 1)));
+  DATES.forEach(([d,tx],i) => out.splice(Math.min(out.length, (i+1)*step + i), 0,
+    { id:'d'+i, name:'', type:'quote', aspect:1.7, aspectKnown:true, canvas:quoteCanvas(tx || QUOTES[(i+6) % QUOTES.length], '#f2d3a0', d) }));
   return out;
 }
 function sheenMat(it){
@@ -452,7 +435,6 @@ function sheenMat(it){
 
 /* ---------------- state ---------------- */
 let items = [], media = [], meshes = [], rings = [];
-let chronoMode = false;
 let entered = false, enterT = 0, ready = false;
 let timeScale = 1, targetTS = 1, spinVel = 0;
 let camY = 0, camYTarget = 0, yRange = 0;
@@ -495,14 +477,13 @@ function folderId(v){
   const m = v.match(/folders\/([\w-]+)/) || v.match(/[?&]id=([\w-]+)/);
   return m ? m[1] : v.trim();
 }
-let notesFileId = '';
 async function listFolder(id, depth = 0){
   const out = []; let token = '';
   do {
     const params = new URLSearchParams({
-      q: `'${id}' in parents and trashed=false and (mimeType contains 'image/' or mimeType contains 'video/' or mimeType='application/vnd.google-apps.folder' or name='${CONFIG.NOTES_FILE}')`,
+      q: `'${id}' in parents and trashed=false and (mimeType contains 'image/' or mimeType contains 'video/' or mimeType='application/vnd.google-apps.folder')`,
       key: CONFIG.GOOGLE_API_KEY, pageSize: '1000', orderBy: 'name',
-      fields: 'nextPageToken,files(id,name,description,mimeType,createdTime,modifiedTime,thumbnailLink,imageMediaMetadata(width,height,rotation,time),videoMediaMetadata(width,height))'
+      fields: 'nextPageToken,files(id,name,mimeType,thumbnailLink,imageMediaMetadata(width,height,rotation),videoMediaMetadata(width,height))'
     });
     if (token) params.set('pageToken', token);
     const res = await fetch('https://www.googleapis.com/drive/v3/files?' + params);
@@ -516,65 +497,25 @@ async function listFolder(id, depth = 0){
         if (CONFIG.INCLUDE_SUBFOLDERS && depth < 3) out.push(...await listFolder(f.id, depth + 1));
         continue;
       }
-      if (CONFIG.NOTES_FILE && f.name.toLowerCase() === CONFIG.NOTES_FILE.toLowerCase()){ if (!notesFileId) notesFileId = f.id; continue; }
       if (!/^(image|video)\//.test(f.mimeType)) continue;
       const isVideo = f.mimeType.startsWith('video/');
       const meta = isVideo ? f.videoMediaMetadata : f.imageMediaMetadata;
       let w = meta && meta.width, h = meta && meta.height;
       if (!isVideo && meta && meta.rotation % 2 === 1) [w,h] = [h,w];
       const base = f.thumbnailLink ? f.thumbnailLink.replace(/=s\d+$/, '') : null;
-      const wd = whenDate(f, meta);
       out.push({
-        fileName: f.name, note: (f.description || '').trim().slice(0, 240), ts: wd ? wd.getTime() : 0, thumbSmall: base ? base + '=w160' : null,
-        id:f.id, name: fmtWhen(f, meta) || f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g,' '), type:isVideo?'video':'image',
+        thumbSmall: base ? base + '=w160' : null,
+        id:f.id, name: f.name.replace(/\.[^.]+$/, '').replace(/[_-]+/g,' '), type:isVideo?'video':'image',
         aspect: w && h ? w/h : 1.5, aspectKnown: !!(w && h),
-        thumb: base ? base + '=w800' : `https://drive.google.com/thumbnail?id=${f.id}&sz=w800`,
-        thumbFallback: `https://drive.google.com/thumbnail?id=${f.id}&sz=w800`,
-        full: base ? base + '=w2400' : `https://drive.google.com/thumbnail?id=${f.id}&sz=w2400`,
+        thumb: base ? base + '=w' + MID_W : `https://drive.google.com/thumbnail?id=${f.id}&sz=w${MID_W}`,
+        thumbFallback: `https://drive.google.com/thumbnail?id=${f.id}&sz=w${MID_W}`,
+        hi: base ? base + '=w' + HI_W : `https://drive.google.com/thumbnail?id=${f.id}&sz=w${HI_W}`,
+        full: base ? base + '=w4096' : `https://drive.google.com/thumbnail?id=${f.id}&sz=w4096`,
         video: isVideo ? `https://www.googleapis.com/drive/v3/files/${f.id}?alt=media&key=${CONFIG.GOOGLE_API_KEY}` : null
       });
     }
   } while (token);
   return out;
-}
-
-/* notes: from notes.txt in the Drive folder and/or CONFIG.NOTES (these win over the Drive "description" field) */
-const noteKey = n => String(n).trim().toLowerCase();
-async function applyNotes(list){
-  const map = new Map();
-  Object.entries(CONFIG.NOTES || {}).forEach(([k, v]) => map.set(noteKey(k), String(v).trim()));
-  if (notesFileId){
-    try {
-      const r = await fetch(`https://www.googleapis.com/drive/v3/files/${notesFileId}?alt=media&key=${CONFIG.GOOGLE_API_KEY}`);
-      if (r.ok){
-        (await r.text()).replace(/^\uFEFF/, '').split(/\r?\n/).forEach(line => {
-          line = line.trim(); if (!line || line[0] === '#') return;
-          const m = /^(.+?)\s*(?:=|\||:)\s*(.+)$/.exec(line); if (m) map.set(noteKey(m[1]), m[2].trim());
-        });
-      }
-    } catch (_) {}
-  }
-  if (!map.size) return;
-  list.forEach(it => {
-    const fn = noteKey(it.fileName || ''), n = map.get(fn) || map.get(fn.replace(/\.[^.]+$/, ''));
-    if (n) it.note = n.slice(0, 240);
-  });
-}
-
-/* when was it taken (EXIF) or, failing that, added to Drive */
-function whenDate(f, meta){
-  let d = null;
-  const ex = !f.mimeType.startsWith('video/') && meta && meta.time;          /* EXIF "YYYY:MM:DD HH:MM:SS" (camera local time) */
-  const m = ex && /^(\d{4}):(\d{2}):(\d{2})[ T](\d{2}):(\d{2})/.exec(ex);
-  if (m) d = new Date(+m[1], +m[2]-1, +m[3], +m[4], +m[5]);
-  else { const t = f.createdTime || f.modifiedTime; if (t) d = new Date(t); }
-  return (d && !isNaN(d)) ? d : null;
-}
-function fmtWhen(f, meta){
-  const d = whenDate(f, meta);
-  if (!d) return '';
-  return d.toLocaleDateString('en-GB', { day:'numeric', month:'short', year:'numeric' }) + ' · ' +
-         d.toLocaleTimeString('en-US', { hour:'numeric', minute:'2-digit' });
 }
 
 /* demo content so the page always works */
@@ -602,11 +543,6 @@ function demoItems(){
 }
 
 /* ---------------- build the 3D gallery ---------------- */
-function ringLabel(a, b){
-  const da = new Date(a), db = new Date(b), mo = d => d.toLocaleDateString('en-GB', { month:'short' });
-  if (da.getFullYear() === db.getFullYear()) return da.getMonth() === db.getMonth() ? `${mo(da)} ${da.getFullYear()}` : `${mo(da)} – ${mo(db)} ${da.getFullYear()}`;
-  return `${mo(da)} ${da.getFullYear()} – ${mo(db)} ${db.getFullYear()}`;
-}
 function buildGallery(list){
   items = list; media = items.filter(i => i.type !== 'quote');
   const H = CONFIG.ITEM_HEIGHT, R = CONFIG.RING_RADIUS, GAP = 0.9, ROW = H + 1.0;
@@ -614,19 +550,13 @@ function buildGallery(list){
   const totalW = items.reduce((s,i) => s + i.w + GAP, 0);
   const L = Math.max(2, Math.ceil(totalW / (2*Math.PI*R*.92)));
   const groups = Array.from({length:L}, () => []);
-  if (chronoMode){
-    /* rings follow time: each ring is a stretch of days, oldest at the bottom, newest at the top */
-    const per = totalW / L; let cum = 0;
-    items.forEach(it => { const gi = Math.min(L-1, Math.floor((cum + (it.w + GAP)/2) / per)); groups[gi].push(it); cum += it.w + GAP; });
-  } else items.forEach((it,i) => groups[i % L].push(it));
+  items.forEach((it,i) => groups[i % L].push(it));
 
   groups.forEach((arr, ri) => {
     const sumW = arr.reduce((s,i) => s + i.w, 0);
     const slack = Math.max(0, 2*Math.PI*R - sumW) / arr.length;
     const dir = ri % 2 ? -1 : 1;
     const ring = { dir, speed:(0.032 + ri*0.007) * dir * (reduceMotion ? .3 : 1), spin:Math.random()*6, y:(ri - (L-1)/2) * ROW };
-    const tss = arr.filter(i => i.ts).map(i => i.ts);
-    if (chronoMode && tss.length) ring.label = ringLabel(Math.min(...tss), Math.max(...tss));
     let cum = 0;
     arr.forEach(it => {
       it.a0 = (cum + it.w/2) / R; cum += it.w + slack; it.ring = ring;
@@ -683,7 +613,7 @@ function loadThumb(m){
     const apply = tex => {
       tex.encoding = SRGB; tex.anisotropy = ANISO; tex.minFilter = THREE.LinearMipmapLinearFilter;
       const old = m.userData.thumbTex; m.userData.thumbTex = tex;
-      if (!m.userData.videoTex){ m.material.map = tex; m.material.needsUpdate = true; }
+      if (!m.userData.videoTex && !m.userData.hiTex){ m.material.map = tex; m.material.needsUpdate = true; }
       if (!it.aspectKnown){ it.aspect = tex.image.width / tex.image.height; it.w = CONFIG.ITEM_HEIGHT * clamp(it.aspect, .6, 1.9); it.aspectKnown = true; }
       m.userData.loaded = 1;
       if (old && old !== tex) old.dispose();
@@ -728,9 +658,48 @@ function stopVideo(m){
   const u = m.userData; if (!u.vid) return;
   u.vid.pause(); u.vid.removeAttribute('src'); u.vid.load(); u.vid = null;
   if (u.videoTex){ u.videoTex.dispose(); u.videoTex = null; }
-  m.material.map = u.thumbTex || placeholder; m.material.needsUpdate = true;
+  m.material.map = u.hiTex || u.thumbTex || placeholder; m.material.needsUpdate = true;
 }
 const tmpV = new THREE.Vector3();
+
+/* ---------------- sharpest quality for what you are looking at ----------------
+   Everything has an everyday texture; the few items nearest the middle of the screen are upgraded to a much
+   bigger version (and dropped again when you look away), so everything looks crisp without running out of memory. */
+let hiLoading = 0;
+function loadHi(m){
+  const u = m.userData, it = u.item;
+  if (u.hiBusy || u.hiTex || !it.hi) return;
+  u.hiBusy = true; hiLoading++;
+  loader.load(it.hi, tex => {
+    hiLoading--; u.hiBusy = false;
+    if (!u.wantHi){ tex.dispose(); return; }
+    tex.encoding = SRGB; tex.anisotropy = ANISO; tex.minFilter = THREE.LinearMipmapLinearFilter;
+    u.hiTex = tex;
+    if (!u.videoTex){ m.material.map = tex; m.material.needsUpdate = true; }
+  }, undefined, () => { hiLoading--; u.hiBusy = false; u.hiFail = (u.hiFail || 0) + 1; });
+}
+function dropHi(m){
+  const u = m.userData; if (!u.hiTex) return;
+  if (!u.videoTex){ m.material.map = u.thumbTex || placeholder; m.material.needsUpdate = true; }
+  u.hiTex.dispose(); u.hiTex = null;
+}
+function updateHi(){
+  if (!entered || viewerOpen) return;
+  const cand = [];
+  for (const m of meshes){
+    const u = m.userData; if (u.item.type === 'quote' || !m.visible || !u.loaded) continue;
+    tmpV.setFromMatrixPosition(m.matrixWorld).project(camera);
+    const d = tmpV.x * tmpV.x + tmpV.y * tmpV.y;
+    if (tmpV.z < 1 && d < 1.6) cand.push({ m, d });
+  }
+  cand.sort((a, b) => a.d - b.d);
+  const max = quality >= 2 ? 2 : quality >= 1 ? Math.ceil(HI_MAX / 2) : HI_MAX;
+  const want = new Set(cand.slice(0, max).map(o => o.m));
+  meshes.forEach(m => { const u = m.userData; if (u.item.type === 'quote') return; u.wantHi = want.has(m); if (!u.wantHi && u.hiTex) dropHi(m); });
+  want.forEach(m => { if (hiLoading < 3 && (m.userData.hiFail || 0) < 2) loadHi(m); });
+}
+setInterval(updateHi, 450);
+
 function updateVideos(){
   if (!entered) return;
   const vids = meshes.filter(m => m.userData.item.type === 'video' && m.visible);
@@ -802,7 +771,7 @@ function pick(){
 }
 function setHovered(m){
   if (m === hovered) return;
-  hovered = m; targetTS = (m && !isPhone()) ? .1 : 1;
+  hovered = m; targetTS = tourOn ? .3 : (m && !isPhone()) ? .1 : 1;
   canvas.style.cursor = m ? 'pointer' : 'default';
   const lb = $('#label');
   lb.classList.remove('on');   /* names / dates are never shown */
@@ -867,10 +836,9 @@ rail.addEventListener('pointermove', e => { if (railDrag) railTo(e); });
 ['pointerup','pointercancel'].forEach(t => rail.addEventListener(t, () => { railDrag = false; }));
 
 /* ---------------- full screen viewer ---------------- */
-const viewer = $('#viewer'), caption = $('#caption'), soundBtn = $('#sound'), strip = $('#strip'), noteEl = $('#note');
-let notePad = 0;
+const viewer = $('#viewer'), caption = $('#caption'), soundBtn = $('#sound'), strip = $('#strip');
 function fitRect(aspect){
-  const small = innerWidth < 700, padX = small ? 12 : 90, padTop = small ? 70 : 60, padBot = (small ? 130 : 120) + notePad;
+  const small = innerWidth < 700, padX = small ? 12 : 90, padTop = small ? 70 : 60, padBot = small ? 130 : 120;
   const W = innerWidth - padX*2, Hh = innerHeight - padTop - padBot;
   let w = W, h = w / aspect; if (h > Hh){ h = Hh; w = h * aspect; }
   return { left:(innerWidth - w)/2, top:padTop + (Hh - h)/2, width:w, height:h };
@@ -905,7 +873,6 @@ function makeMedia(it){
   return el;
 }
 function mount(it, startRect){
-  showNote(it);
   const el = makeMedia(it), final = fitRect(it.aspect);
   if (startRect){ setRect(el, startRect); } else { setRect(el, final); el.style.opacity = 0; }
   viewer.appendChild(el); void el.offsetWidth; vEl = el;
@@ -935,7 +902,7 @@ function openViewer(it){
     } catch (_) { viewerHistoryEntry = false; }
   }
   viewerOpen = true; vIndex = media.indexOf(it); targetTS = 0; setHovered(null);
-  stopTour(); flyItem = null; yearTag.classList.remove('on');
+  stopTour(); flyItem = null;
   if (!viewerHintSeen){ viewerHintSeen = true; try { localStorage.setItem('orbit-viewer-hint', '1'); } catch (_) {} setTimeout(() => toast('Swipe for next · pinch or double-tap to zoom', 4200), 900); }
   const m = it.mesh; const from = meshRect(m);
   m.userData.hide = true; viewer.classList.add('open');
@@ -953,7 +920,6 @@ function navigate(dir){
   old.style.opacity = 0; setTimeout(() => old.remove(), 400);
   vEl = null; vEl = mount(it, null);
 }
-function showNote(it){ notePad = it.note ? 56 : 0; noteEl.textContent = it.note || ''; noteEl.classList.toggle('has', !!it.note); }
 function buildStrip(cur){
   const idx = [];
   media.forEach((m, i) => { if (inScope(m) || m === cur) idx.push(i); });
@@ -989,7 +955,6 @@ function closeViewer(fromPopState = false){
   const el = vEl, it = media[vIndex], m = it.mesh;
   viewerOpen = false; vEl = null; targetTS = 1;
   viewer.classList.remove('open');
-  if (yearShown) yearTag.classList.add('on');
   const r = meshRect(m);
   el.classList.add('anim'); setRect(el, r);
   setTimeout(() => { m.userData.hide = false; el.style.opacity = 0; }, 560);
@@ -1106,8 +1071,8 @@ addEventListener('keydown', e => {
 /* =====================================================================
    EXTRAS: auto tour · ambient music · favourites · on this day · year marker · colour match
    ===================================================================== */
-const yearTag = $('#yearTag'), toastEl = $('#toast'), favBtn = $('#fav');
-let yearShown = '', toastT = 0;
+const toastEl = $('#toast'), favBtn = $('#fav');
+let toastT = 0;
 function toast(msg, ms){ toastEl.textContent = msg; toastEl.classList.add('on'); clearTimeout(toastT); toastT = setTimeout(() => toastEl.classList.remove('on'), ms || 3200); }
 
 /* ---- favourites (kept on this device) ---- */
@@ -1131,52 +1096,62 @@ $('#bFav').addEventListener('click', e => {
 /* ---- fly the camera to an item, and the auto tour built on it ---- */
 let flyItem = null, flyUntil = 0, tourOn = false, tourMesh = null, tourTimer = 0, tourIdx = -1;
 const wrapPi = a => a - Math.PI * 2 * Math.floor((a + Math.PI) / (Math.PI * 2));
-function flyTo(it, ms){ flyItem = it; flyUntil = performance.now() + (ms || 2600); idle = 0; camYV = 0; }
+const flyV = { yaw:0, y:0 };
+let tourZoom = 0, flyArrived = false, tourCur = null, tourDir = 1;
+function damp(cur, target, vel, st, dt){                          /* critically damped spring: starts and stops gently, never overshoots */
+  const om = 2 / st, x = om * dt, e = 1 / (1 + x + .48*x*x + .235*x*x*x), ch = cur - target, tmp = (vel + om * ch) * dt;
+  return [target + (ch + tmp) * e, (vel - om * tmp) * e];
+}
+function flyTo(it, ms){ if (!flyItem){ flyV.yaw = 0; flyV.y = 0; } flyItem = it; flyUntil = performance.now() + (ms || 2600); idle = 0; camYV = 0; }
 function tourUI(){
   $('#bTour').classList.toggle('active', tourOn);
   $('#bTour').setAttribute('aria-label', tourOn ? 'Stop auto tour' : 'Start auto tour');
   $('#tourIcon').innerHTML = tourOn ? '<path d="M8 5v14M16 5v14"/>' : '<path d="M7 5l12 7-12 7z"/>';
 }
+/* the tour walks ring by ring (a gentle zig-zag up, then back down) so it never jumps around */
+function tourList(){
+  return media.filter(inScope).sort((p, q) => {
+    const rp = rings.indexOf(p.ring), rq = rings.indexOf(q.ring);
+    return rp !== rq ? rp - rq : (rp % 2 ? q.a0 - p.a0 : p.a0 - q.a0);
+  });
+}
+function nearestTo(list){                                          /* whatever is closest to where you are looking */
+  let best = list[0], bd = 1e9;
+  list.forEach(it => { const m = it.mesh; if (!m.visible) return; tmpV.setFromMatrixPosition(m.matrixWorld).project(camera); if (tmpV.z >= 1) return; const d = tmpV.x*tmpV.x + tmpV.y*tmpV.y; if (d < bd){ bd = d; best = it; } });
+  return best;
+}
 function tourStep(){
   clearTimeout(tourTimer);
   if (!tourOn) return;
-  const list = media.filter(inScope);
+  const list = tourList();
   if (!list.length){ stopTour(); return; }
-  tourIdx = (tourIdx + 1) % list.length;
-  const it = list[tourIdx]; tourMesh = it.mesh; flyTo(it, 3000);
-  tourTimer = setTimeout(tourStep, it.type === 'video' ? 6500 : 4200);
+  const prev = tourCur, at = prev ? list.indexOf(prev) : -1;
+  let next;
+  if (at < 0) next = nearestTo(list);
+  else {
+    let j = at + tourDir;
+    if (j >= list.length){ tourDir = -1; j = list.length - 2; } else if (j < 0){ tourDir = 1; j = 1; }
+    next = list[clamp(j, 0, list.length - 1)];
+  }
+  tourCur = next; tourMesh = next.mesh; flyTo(next, 1e9);          /* keeps following the item while its ring turns */
+  tourTimer = setTimeout(tourStep, (next.type === 'video' ? 6500 : 3800) + (prev && prev.ring !== next.ring ? 1400 : 0));
 }
 function startTour(){
   if (!entered || viewerOpen) return;
-  const list = media.filter(inScope);
-  if (!list.length) return;
-  let best = 0, bd = 1e9;                                           /* begin with whatever is closest to where you are looking */
-  list.forEach((it, i) => { const m = it.mesh; if (!m.visible) return; tmpV.setFromMatrixPosition(m.matrixWorld).project(camera); if (tmpV.z >= 1) return; const d = tmpV.x*tmpV.x + tmpV.y*tmpV.y; if (d < bd){ bd = d; best = i; } });
-  tourIdx = best - 1; tourOn = true; tourUI(); hideHint(); tourStep();
+  if (!media.some(inScope)) return;
+  tourCur = null; tourDir = 1; tourOn = true; targetTS = .3; tourUI(); hideHint(); tourStep();
 }
-function stopTour(){ if (!tourOn && !tourMesh) return; tourOn = false; tourMesh = null; clearTimeout(tourTimer); tourUI(); }
+function stopTour(){
+  if (!tourOn && !tourMesh) return;
+  const was = tourOn; tourOn = false; tourMesh = null; tourCur = null; clearTimeout(tourTimer);
+  if (was){ flyItem = null; targetTS = viewerOpen ? 0 : 1; }
+  tourUI();
+}
 $('#bTour').addEventListener('click', () => { if (tourOn){ stopTour(); toast('Tour stopped', 1400); } else { startTour(); toast('Auto tour · touch anywhere to stop', 2600); } });
 canvas.addEventListener('pointerdown', cancelAuto);
 canvas.addEventListener('wheel', cancelAuto, { passive:true });
 rail.addEventListener('pointerdown', cancelAuto);
 addEventListener('keydown', e => { if (!viewerOpen && e.key.indexOf('Arrow') === 0) cancelAuto(); });
-
-/* ---- on this day ---- */
-let otdOn = true, otdCount = 0, otdPos = -1;
-function markOtd(){
-  const n = new Date(); let c = 0;
-  media.forEach(it => {
-    if (!it.ts) return; const d = new Date(it.ts); it.y = d.getFullYear(); it.mo = d.getMonth();
-    if (d.getMonth() === n.getMonth() && d.getDate() === n.getDate() && d.getFullYear() < n.getFullYear()){ it.otd = true; c++; }
-  });
-  $('#bOtd').hidden = !c; return c;
-}
-function otdAnnounce(){ if (otdCount) toast(`On this day · ${otdCount} memor${otdCount === 1 ? 'y' : 'ies'} glowing ✦`, 4200); }
-$('#bOtd').addEventListener('click', () => {
-  const list = media.filter(i => i.otd); if (!list.length) return;
-  stopTour(); otdPos = (otdPos + 1) % list.length; flyTo(list[otdPos], 3200);
-  const y = new Date(list[otdPos].ts).getFullYear(); toast(`On this day, ${y}`, 2600);
-});
 
 /* ---- colours of the photos in front of you tint the glow, hearts and backdrop ---- */
 const tintCur = [140, 80, 170]; let tintTarget = [140, 80, 170], tintAcc = 0;
@@ -1195,45 +1170,28 @@ setInterval(updateTint, 450);
 const isLit = m => hovered === m || centerSet.has(m) || tourMesh === m || litMesh === m;
 
 /* ---- filter: photos / videos / year / month ---- */
-const MON = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-const filt = { type:'all', year:null, month:null };
-const filtActive = () => filt.type !== 'all' || filt.year !== null || filt.month !== null;
-function passFilter(it){
-  if (!filtActive()) return true;
-  if (filt.type !== 'all' && it.type !== filt.type) return false;
-  if (filt.year !== null || filt.month !== null){
-    if (!it.ts) return false;
-    if (filt.year !== null && it.y !== filt.year) return false;
-    if (filt.month !== null && it.mo !== filt.month) return false;
-  }
-  return true;
-}
+const filt = { type:'all' };
+const filtActive = () => filt.type !== 'all';
+function passFilter(it){ return filt.type === 'all' || it.type === filt.type; }
 const inScope = it => it.type !== 'quote' && (!favOnly || favs.has(it.id)) && passFilter(it);
 const fPanel = $('#filterPanel'), bFilter = $('#bFilter');
 function buildFilterPanel(){
-  const years = [...new Set(media.filter(i => i.ts).map(i => i.y))].sort((a, b) => b - a);
   const chip = (g, v, label) => `<button type="button" class="chip" data-g="${g}" data-v="${v}">${label}</button>`;
-  let h = `<div class="fgrp"><span>Show</span>${chip('type','all','All')}${chip('type','image','Photos')}${chip('type','video','Videos')}</div>`;
-  if (years.length){
-    h += `<div class="fgrp"><span>Year</span>${chip('year','','Any')}${years.map(y => chip('year', y, y)).join('')}</div>`;
-    h += `<div class="fgrp"><span>Month</span>${chip('month','','Any')}${MON.map((m, i) => chip('month', i, m)).join('')}</div>`;
-  }
-  h += `<div class="fgrp"><button type="button" class="chip clear" data-g="clear">Clear filter</button></div>`;
-  fPanel.innerHTML = h; syncChips();
+  fPanel.innerHTML = `<div class="fgrp"><span>Show</span>${chip('type','all','All')}${chip('type','image','Photos')}${chip('type','video','Videos')}</div>` +
+    `<div class="fgrp"><button type="button" class="chip clear" data-g="clear">Clear filter</button></div>`;
+  syncChips();
 }
 function syncChips(){
   fPanel.querySelectorAll('.chip').forEach(c => {
     const g = c.dataset.g, v = c.dataset.v; if (g === 'clear') return;
-    const cur = g === 'type' ? filt.type : (filt[g] === null ? '' : String(filt[g]));
-    c.classList.toggle('on', v === cur);
+    c.classList.toggle('on', v === filt.type);
   });
   bFilter.classList.toggle('active', filtActive());
 }
 fPanel.addEventListener('click', e => {
   const c = e.target.closest('.chip'); if (!c) return;
   const g = c.dataset.g, v = c.dataset.v;
-  if (g === 'clear'){ filt.type = 'all'; filt.year = null; filt.month = null; }
-  else if (g === 'type') filt.type = v; else filt[g] = v === '' ? null : +v;
+  if (g === 'clear') filt.type = 'all'; else if (g === 'type') filt.type = v;
   syncChips();
   const n = media.filter(inScope).length;
   toast(!filtActive() && !favOnly ? 'Showing everything' : n ? `Showing ${n} memor${n === 1 ? 'y' : 'ies'}` : 'Nothing matches that filter', 2200);
@@ -1289,7 +1247,7 @@ let quality = 0, qAcc = 0, qN = 0, qLow = 0, qHigh = 0, qCool = 6, qUpLocked = f
 function setQuality(q){
   quality = q;
   document.documentElement.classList.toggle('q1', q >= 1); document.documentElement.classList.toggle('q2', q >= 2);
-  const base = Math.min(devicePixelRatio, LITE ? 1.25 : isTouch ? 1.5 : 2);
+  const base = Math.min(devicePixelRatio, LITE ? 1.25 : 2);
   renderer.setPixelRatio(q >= 2 ? 1 : q === 1 ? Math.min(base, 1.15) : base);
   resize();
   dust.visible = q < 1; stars.visible = q < 2; hearts.visible = q < 2;
@@ -1326,20 +1284,17 @@ function tick(){
   $('#compass').firstChild.style.transform = 'rotate(' + yaw + 'rad)';
   sky.material.uniforms.uT.value = t;
 
-  // camera fly-to (tour / on this day) – follows the item while its ring turns
+  // camera fly-to (tour / surprise) – a smooth spring that keeps following the item while its ring turns
   if (flyItem && !drag && !viewerOpen){
-    const diff = wrapPi(-(flyItem.a0 + flyItem.ring.spin) - yaw);
-    yaw += diff * Math.min(1, dt * 3.2); yawV = 0; pitch += (0 - pitch) * Math.min(1, dt * 3); pitchV = 0;
-    camYTarget = clamp(flyItem.ring.y, -yRange - 1, yRange + 1); idle = 0;
-    if (performance.now() > flyUntil) flyItem = null;
-  }
+    const tgtYaw = yaw + wrapPi(-(flyItem.a0 + flyItem.ring.spin) - yaw), tgtY = clamp(flyItem.ring.y, -yRange - 1, yRange + 1);
+    let r = damp(yaw, tgtYaw, flyV.yaw, .9, dt); yaw = r[0]; flyV.yaw = r[1];
+    r = damp(camY, tgtY, flyV.y, 1.05, dt); camY = r[0]; flyV.y = r[1];
+    camYTarget = camY; camYV = 0; yawV = 0; pitchV = 0; idle = 0; pitch += (0 - pitch) * Math.min(1, dt * 2.2);
+    flyArrived = Math.abs(tgtYaw - yaw) < .08 && Math.abs(tgtY - camY) < .2;
+    if (performance.now() > flyUntil){ flyItem = null; flyArrived = false; }
+  } else flyArrived = false;
+  tourZoom += ((tourOn && flyArrived ? 1 : 0) - tourZoom) * Math.min(1, dt * 1.4);   /* slow cinematic push-in while a photo is on show */
   if (tourOn) idle = 0;
-  // year marker for the ring you are on
-  if (entered && !viewerOpen && chronoMode && rings.length){
-    let best = null, bd = 1e9;
-    for (const r of rings){ const d = Math.abs(r.y - camY); if (d < bd){ bd = d; best = r; } }
-    if (best && best.label && best.label !== yearShown){ yearShown = best.label; yearTag.textContent = yearShown; yearTag.classList.add('on'); }
-  }
   // colour match
   if (!LITE && quality < 1 && entered){
     for (let i = 0; i < 3; i++) tintCur[i] += (tintTarget[i] - tintCur[i]) * Math.min(1, dt * 1.2);
@@ -1362,7 +1317,7 @@ function tick(){
   meshes.forEach(m => {
     const u = m.userData, it = u.item, ring = it.ring;
     const ap = ease(clamp((enterT - u.delay) / 2.4, 0, 1));
-    const tgt = isLit(m) ? 1 : (otdOn && it.otd ? .55 + .35 * Math.sin(t * 2.2 + u.phase) : 0);
+    const tgt = isLit(m) ? 1 : 0;
     u.hover += (tgt - u.hover) * Math.min(1, dt * 9);
     if (ap <= 0.001){ m.visible = false; return; }
     m.visible = true;
@@ -1387,7 +1342,7 @@ function tick(){
   }
   camY += (camYTarget - camY) * Math.min(1, dt * (drag && drag.touch ? 16 : Math.abs(camYV) > .05 ? 7 : 3));
   const warp = ease(clamp(enterT / 3.4, 0, 1));
-  camera.fov = baseFov + (1 - warp) * 28 - Math.abs(scrollE) * 5; camera.updateProjectionMatrix();
+  camera.fov = baseFov + (1 - warp) * 28 - Math.abs(scrollE) * 5 - tourZoom * 6; camera.updateProjectionMatrix();
   camera.position.set(ps.x * .6, camY + ps.y * .4, 0);
   camera.rotation.y = yaw - ps.x * .05 + (entered ? 0 : Math.sin(t * .15) * .25);
   camera.rotation.x = pitch + ps.y * .04;
@@ -1483,7 +1438,7 @@ $('#enter').addEventListener('click', () => {
   /* Start muted scene videos directly from this user gesture for stricter autoplay policies. */
   requestAnimationFrame(() => updateVideos());
   setTimeout(showHint, 3200); $('#rail').classList.add('on'); $('#compass').classList.add('on');
-  $('#dock').classList.add('on'); setTimeout(otdAnnounce, 3800); setTimeout(showSwipeHint, 1600); updateProgress();
+  $('#dock').classList.add('on'); setTimeout(showSwipeHint, 1600); updateProgress();
 });
 let rz = 0;
 addEventListener('resize', () => { cancelAnimationFrame(rz); rz = requestAnimationFrame(resize); });
@@ -1506,7 +1461,6 @@ addEventListener('visibilitychange', () => {
       setStatus('Reading your Google Drive folder…');
       list = await listFolder(folderId(CONFIG.DRIVE_FOLDER));
       if (!list.length) throw new Error('No photos or videos were found in that folder.');
-      await applyNotes(list);
       setStatus('');
     } catch (err){
       setStatus(`Couldn’t load the Drive folder: ${err.message}. Check that the folder is shared as “Anyone with the link” and the API key allows the Drive API. Showing sample images instead.`, true);
@@ -1517,14 +1471,8 @@ addEventListener('visibilitychange', () => {
   }
   if (!list.length) list = demoItems();
   try { await Promise.race([document.fonts.load('italic 300 56px "Cormorant Garamond"'), new Promise(r => setTimeout(r, 2500))]); } catch(e){}
-  const dated = list.filter(i => i.ts);
-  if (!demo && dated.length >= list.length * .5){
-    const lo = Math.min(...dated.map(i => i.ts)), hi = Math.max(...dated.map(i => i.ts));
-    chronoMode = hi - lo > 30 * 86400000;                        /* only worth it if the photos really span time */
-  }
-  if (chronoMode) list.sort((a, b) => (a.ts || 8.64e15) - (b.ts || 8.64e15));
-  buildGallery(withQuotes(list, chronoMode));
-  otdCount = markOtd();
+  if (CONFIG.SHUFFLE) for (let i = list.length - 1; i > 0; i--){ const j = (Math.random() * (i + 1)) | 0; [list[i], list[j]] = [list[j], list[i]]; }
+  buildGallery(withQuotes(list));
   buildFilterPanel(); updateProgress();
   ready = true;
   const b = $('#enter'); b.disabled = false; b.textContent = 'Enter the gallery';
